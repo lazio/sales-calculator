@@ -67,6 +67,10 @@ export function calculateQuote(
   // Total quote = monthly fee + product price
   const totalQuote = monthlyFee + productPrice;
 
+  // Apply discount
+  const discountAmount = Math.round((totalQuote * discountPercentage) / 100);
+  const finalTotal = totalQuote - discountAmount;
+
   return {
     totalQuote,
     monthlyFee,
@@ -74,6 +78,8 @@ export function calculateQuote(
     totalDays: actualTimeline,
     teamSizeMultiplier: 1, // Always 1 now, keeping for backwards compatibility
     modulesInTimeline,
+    discountAmount,
+    finalTotal,
   };
 }
 

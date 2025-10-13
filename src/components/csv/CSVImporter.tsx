@@ -83,10 +83,6 @@ export default function CSVImporter({ onImport }: CSVImporterProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800">CSV Import</h3>
-      </div>
-
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

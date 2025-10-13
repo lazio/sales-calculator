@@ -4,6 +4,8 @@ interface QuoteSummaryProps {
   productPrice: number;
   totalDays: number;
   teamSizeMultiplier?: number;
+  discountAmount?: number;
+  finalTotal?: number;
 }
 
 export default function QuoteSummary({
@@ -11,16 +13,31 @@ export default function QuoteSummary({
   monthlyFee,
   productPrice,
   totalDays,
-  teamSizeMultiplier = 1
+  teamSizeMultiplier = 1,
+  discountAmount = 0,
+  finalTotal
 }: QuoteSummaryProps) {
+  const displayTotal = finalTotal !== undefined ? finalTotal : totalQuote;
   return (
-    <div className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl shadow-xl p-8">
+    <div className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl shadow-xl p-8 animate-fade-in">
       {/* Total Quote Section */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white mb-2">Total Quote</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">
+          {discountAmount > 0 ? 'Final Total' : 'Total Quote'}
+        </h2>
         <div className="text-6xl font-bold text-white mb-2">
-          ${totalQuote.toLocaleString()}
+          ${displayTotal.toLocaleString()}
         </div>
+        {discountAmount > 0 && (
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-white/60 line-through text-xl">
+              ${totalQuote.toLocaleString()}
+            </span>
+            <span className="px-2 py-1 bg-green-500 text-white text-sm font-semibold rounded">
+              -${discountAmount.toLocaleString()} saved
+            </span>
+          </div>
+        )}
         <p className="text-white/90 text-lg">
           {totalDays > 0 ? `${totalDays} working days timeline` : 'Your estimated total'}
         </p>
@@ -56,20 +73,6 @@ export default function QuoteSummary({
             (${monthlyFee.toLocaleString()} / 20 days) × {totalDays} days
           </p>
         </div>
-      </div>
-
-      {/* Call to Action */}
-      <div className="pt-6 border-t border-white/30">
-        <h3 className="text-xl font-bold text-white mb-3">
-          Ready to Get Started?
-        </h3>
-        <p className="text-white/90 text-sm mb-5">
-          Get your project moving today with our competitive pricing.
-          Reach out for a detailed consultation.
-        </p>
-        <button className="w-full bg-gray-900 hover:bg-gray-800 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98]">
-          Request a Quote
-        </button>
       </div>
     </div>
   );

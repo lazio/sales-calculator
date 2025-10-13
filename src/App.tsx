@@ -7,6 +7,8 @@ import RateConfiguration from './components/rates/RateConfiguration';
 import CSVImporter from './components/csv/CSVImporter';
 import ModuleList from './components/features/ModuleList';
 import TimelineSlider from './components/timeline/TimelineSlider';
+import DiscountInput from './components/discount/DiscountInput';
+import CollapsibleSection from './components/common/CollapsibleSection';
 import { DEFAULT_RATES, RateConfig, STORAGE_KEY } from './types/rates.types';
 import { ProjectModule } from './types/project.types';
 import { calculateQuote } from './services/calculationEngine';
@@ -29,6 +31,9 @@ function App() {
   // Timeline adjustment (null means use optimal timeline)
   const [customTimeline, setCustomTimeline] = useState<number | null>(null);
 
+  // Discount percentage (0-100)
+  const [discount, setDiscount] = useState<number>(0);
+
   // Save rates to localStorage whenever they change
   useEffect(() => {
     try {
@@ -38,7 +43,7 @@ function App() {
     }
   }, [rates]);
 
-  // Calculate optimal timeline (without custom timeline adjustment)
+  // Calculate optimal timeline (without custom timeline adjustment or discount)
   const optimalQuote = useMemo(() => calculateQuote(rates, modules), [rates, modules]);
 
   // Calculate timeline constraints
@@ -65,8 +70,8 @@ function App() {
     };
   }, [optimalQuote.totalDays, customTimeline]);
 
-  // Calculate final quote with custom timeline
-  const quote = useMemo(() => calculateQuote(rates, modules, customTimeline || undefined), [rates, modules, customTimeline]);
+  // Calculate final quote with custom timeline and discount
+  const quote = useMemo(() => calculateQuote(rates, modules, customTimeline || undefined, discount), [rates, modules, customTimeline, discount]);
 
   const handleRateChange = (index: number, newRate: number) => {
     const updatedRates = [...rates];
@@ -90,34 +95,51 @@ function App() {
     setCustomTimeline(days);
   };
 
+  const handleDiscountChange = (discountPercentage: number) => {
+    setDiscount(discountPercentage);
+  };
+
   return (
     <AppLayout
       leftPanel={
         <LeftPanel>
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* CSV Import */}
-            <CSVImporter onImport={handleCSVImport} />
+            <CollapsibleSection title="CSV Import" defaultExpanded={true}>
+              <CSVImporter onImport={handleCSVImport} />
+            </CollapsibleSection>
 
             {/* Rate Configuration */}
-            <RateConfiguration rates={rates} onRateChange={handleRateChange} />
+            <CollapsibleSection title="Monthly Rates" defaultExpanded={true}>
+              <RateConfiguration rates={rates} onRateChange={handleRateChange} />
+            </CollapsibleSection>
 
             {/* Feature Toggles */}
             {modules.length > 0 && (
-              <ModuleList
-                modules={modules}
-                onToggle={handleModuleToggle}
-                modulesInTimeline={quote.modulesInTimeline}
-              />
+              <CollapsibleSection title="Project Modules" defaultExpanded={true}>
+                <ModuleList
+                  modules={modules}
+                  onToggle={handleModuleToggle}
+                  modulesInTimeline={quote.modulesInTimeline}
+                />
+              </CollapsibleSection>
             )}
 
             {/* Timeline Adjustment */}
-            <TimelineSlider
-              minDays={timelineConstraints.min}
-              maxDays={timelineConstraints.max}
-              currentDays={timelineConstraints.current}
-              optimalDays={timelineConstraints.optimal}
-              onTimelineChange={handleTimelineChange}
-            />
+            <CollapsibleSection title="Timeline Adjustment" defaultExpanded={true}>
+              <TimelineSlider
+                minDays={timelineConstraints.min}
+                maxDays={timelineConstraints.max}
+                currentDays={timelineConstraints.current}
+                optimalDays={timelineConstraints.optimal}
+                onTimelineChange={handleTimelineChange}
+              />
+            </CollapsibleSection>
+
+            {/* Discount */}
+            <CollapsibleSection title="Discount" defaultExpanded={true}>
+              <DiscountInput discount={discount} onDiscountChange={handleDiscountChange} />
+            </CollapsibleSection>
           </div>
         </LeftPanel>
       }
@@ -129,6 +151,8 @@ function App() {
             productPrice={quote.productPrice}
             totalDays={quote.totalDays}
             teamSizeMultiplier={quote.teamSizeMultiplier}
+            discountAmount={quote.discountAmount}
+            finalTotal={quote.finalTotal}
           />
         </RightPanel>
       }

@@ -22,7 +22,7 @@ export default function ModuleList({ modules, onToggle, modulesInTimeline }: Mod
     .reduce((sum, m) => sum + m.frontendDays + m.backendDays, 0);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-slide-up">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-800">Project Modules</h3>
@@ -41,7 +41,7 @@ export default function ModuleList({ modules, onToggle, modulesInTimeline }: Mod
           return (
             <div
               key={module.id}
-              className={`rounded-lg p-4 transition-all duration-200 ${
+              className={`rounded-lg p-4 transition-all duration-300 hover:shadow-md ${
                 isExcluded
                   ? 'bg-red-50 border-2 border-red-300 opacity-100'
                   : isEnabled
