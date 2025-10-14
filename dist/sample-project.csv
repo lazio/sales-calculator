@@ -1,0 +1,7 @@
+Module,MVP,Front-end,Back-end,Performer
+Setup,true,1,1,"Frontend developer, Backend developer"
+Global Navigation & Utilities,true,2,3,"Frontend developer, Backend developer, QA, PM"
+Company View Dashboard,true,5,7,"Frontend developer, Backend developer, QA, PM"
+Portfolio View Dashboard,false,4,5,"Frontend developer, Backend developer, QA, PM"
+User Management,true,3,4,"Frontend developer, Backend developer, QA"
+Reporting Module,false,6,8,"Frontend developer, Backend developer, QA, PM"

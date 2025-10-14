@@ -96,5 +96,7 @@ export function calculateQuoteForDuration(
     totalQuote: monthlyCalculation.totalQuote * months,
     monthlyFee: monthlyCalculation.monthlyFee * months,
     productPrice: monthlyCalculation.productPrice * months,
+    discountAmount: monthlyCalculation.discountAmount * months,
+    finalTotal: monthlyCalculation.finalTotal * months,
   };
 }

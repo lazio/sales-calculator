@@ -13,7 +13,6 @@ export default function QuoteSummary({
   monthlyFee,
   productPrice,
   totalDays,
-  teamSizeMultiplier = 1,
   discountAmount = 0,
   finalTotal
 }: QuoteSummaryProps) {
