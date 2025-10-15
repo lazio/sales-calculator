@@ -1,5 +1,6 @@
-import { ProjectModule } from '../../types/project.types';
-import { RateConfig } from '../../types/rates.types';
+import { ProjectModule } from '@/types/project.types';
+import { RateConfig } from '@/types/rates.types';
+import { calculateModuleStats, calculateModulePrice } from '@/services/calculationEngine';
 
 interface ModuleListProps {
   modules: ProjectModule[];
@@ -13,22 +14,8 @@ export default function ModuleList({ modules, onToggle, modulesInTimeline, rates
     return null;
   }
 
-  // Calculate timeline (parallel work: max of frontend/backend per module)
-  const timelineDays = modules
-    .filter(m => m.isEnabled)
-    .reduce((sum, m) => sum + Math.max(m.frontendDays, m.backendDays), 0);
-
-  // Calculate total effort (sum of all work)
-  const effortDays = modules
-    .filter(m => m.isEnabled)
-    .reduce((sum, m) => sum + m.frontendDays + m.backendDays, 0);
-
-  // Calculate price for a specific module
-  const calculateModulePrice = (module: ProjectModule): number => {
-    const monthlyFee = rates.reduce((sum, rate) => sum + rate.monthlyRate, 0);
-    const moduleTimeline = Math.max(module.frontendDays, module.backendDays);
-    return Math.round((monthlyFee / 20) * moduleTimeline);
-  };
+  // Calculate statistics using centralized business logic
+  const { timelineDays, effortDays } = calculateModuleStats(modules);
 
   return (
     <div className="space-y-4 animate-slide-up">
@@ -75,7 +62,7 @@ export default function ModuleList({ modules, onToggle, modulesInTimeline, rates
                       </span>
                     )}
                     <span className="px-2 py-0.5 text-sm font-semibold bg-green-100 text-green-800 rounded ml-auto">
-                      ${calculateModulePrice(module).toLocaleString()}
+                      ${calculateModulePrice(module, rates).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">

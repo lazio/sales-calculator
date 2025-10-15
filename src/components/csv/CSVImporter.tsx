@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import Papa from 'papaparse';
-import { CSVRow, ProjectModule } from '../../types/project.types';
+import { CSVRow, ProjectModule } from '@/types/project.types';
+import { validateCSVRow, csvRowToModule, ValidationError } from '@/utils/validation';
 
 interface CSVImporterProps {
   onImport: (modules: ProjectModule[]) => void;
@@ -19,14 +20,11 @@ export default function CSVImporter({ onImport }: CSVImporterProps) {
       skipEmptyLines: true,
       complete: (results) => {
         try {
-          const modules: ProjectModule[] = results.data.map((row, index) => ({
-            id: `module-${index}`,
-            name: row.Module || '',
-            frontendDays: parseFloat(row['Front-end']) || 0,
-            backendDays: parseFloat(row['Back-end']) || 0,
-            performers: row.Performer ? row.Performer.split(',').map(p => p.trim()) : [],
-            isEnabled: true,
-          }));
+          // Validate and transform CSV rows
+          const modules: ProjectModule[] = results.data.map((row, index) => {
+            const validatedRow = validateCSVRow(row, index);
+            return csvRowToModule(validatedRow, index);
+          });
 
           if (modules.length === 0) {
             setError('No valid data found in CSV file');
@@ -35,7 +33,11 @@ export default function CSVImporter({ onImport }: CSVImporterProps) {
 
           onImport(modules);
         } catch (err) {
-          setError('Failed to parse CSV file. Please check the format.');
+          if (err instanceof ValidationError) {
+            setError(err.message);
+          } else {
+            setError('Failed to parse CSV file. Please check the format.');
+          }
           console.error('CSV parsing error:', err);
         }
       },
@@ -126,7 +128,7 @@ export default function CSVImporter({ onImport }: CSVImporterProps) {
 
         <p className="mt-2 text-sm text-gray-600">or drag and drop</p>
         <p className="mt-1 text-xs text-gray-500">
-          CSV file with columns: Module, Front-end, Back-end, Performer
+          Required columns: Module, Front-end, Back-end, Performer
         </p>
       </div>
 

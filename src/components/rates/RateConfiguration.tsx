@@ -1,4 +1,4 @@
-import { RateConfig } from '../../types/rates.types';
+import { RateConfig } from '@/types/rates.types';
 
 interface RateConfigurationProps {
   rates: RateConfig[];
