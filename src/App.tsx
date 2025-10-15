@@ -121,6 +121,7 @@ function App() {
                   modules={modules}
                   onToggle={handleModuleToggle}
                   modulesInTimeline={quote.modulesInTimeline}
+                  rates={rates}
                 />
               </CollapsibleSection>
             )}

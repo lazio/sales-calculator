@@ -22,7 +22,6 @@ export default function CSVImporter({ onImport }: CSVImporterProps) {
           const modules: ProjectModule[] = results.data.map((row, index) => ({
             id: `module-${index}`,
             name: row.Module || '',
-            isMVP: row.MVP?.toLowerCase() === 'true' || row.MVP === '✓',
             frontendDays: parseFloat(row['Front-end']) || 0,
             backendDays: parseFloat(row['Back-end']) || 0,
             performers: row.Performer ? row.Performer.split(',').map(p => p.trim()) : [],
@@ -127,7 +126,7 @@ export default function CSVImporter({ onImport }: CSVImporterProps) {
 
         <p className="mt-2 text-sm text-gray-600">or drag and drop</p>
         <p className="mt-1 text-xs text-gray-500">
-          CSV file with columns: Module, MVP, Front-end, Back-end, Performer
+          CSV file with columns: Module, Front-end, Back-end, Performer
         </p>
       </div>
 

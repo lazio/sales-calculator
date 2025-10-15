@@ -1,7 +1,6 @@
 export interface ProjectModule {
   id: string;
   name: string;
-  isMVP: boolean;
   frontendDays: number;
   backendDays: number;
   performers: string[];
@@ -10,7 +9,6 @@ export interface ProjectModule {
 
 export interface CSVRow {
   Module: string;
-  MVP: string;
   'Front-end': string;
   'Back-end': string;
   Performer: string;

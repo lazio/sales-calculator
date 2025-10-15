@@ -1,12 +1,14 @@
 import { ProjectModule } from '../../types/project.types';
+import { RateConfig } from '../../types/rates.types';
 
 interface ModuleListProps {
   modules: ProjectModule[];
   onToggle: (id: string) => void;
   modulesInTimeline?: string[]; // IDs of modules that fit in the timeline
+  rates: RateConfig[];
 }
 
-export default function ModuleList({ modules, onToggle, modulesInTimeline }: ModuleListProps) {
+export default function ModuleList({ modules, onToggle, modulesInTimeline, rates }: ModuleListProps) {
   if (modules.length === 0) {
     return null;
   }
@@ -20,6 +22,13 @@ export default function ModuleList({ modules, onToggle, modulesInTimeline }: Mod
   const effortDays = modules
     .filter(m => m.isEnabled)
     .reduce((sum, m) => sum + m.frontendDays + m.backendDays, 0);
+
+  // Calculate price for a specific module
+  const calculateModulePrice = (module: ProjectModule): number => {
+    const monthlyFee = rates.reduce((sum, rate) => sum + rate.monthlyRate, 0);
+    const moduleTimeline = Math.max(module.frontendDays, module.backendDays);
+    return Math.round((monthlyFee / 20) * moduleTimeline);
+  };
 
   return (
     <div className="space-y-4 animate-slide-up">
@@ -47,7 +56,7 @@ export default function ModuleList({ modules, onToggle, modulesInTimeline }: Mod
                   : isEnabled
                   ? 'bg-gray-50 opacity-100'
                   : 'bg-gray-50 opacity-50'
-              } ${module.isMVP ? 'border-l-4 border-primary-500' : ''}`}
+              }`}
             >
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3 flex-1">
@@ -58,18 +67,16 @@ export default function ModuleList({ modules, onToggle, modulesInTimeline }: Mod
                   className="mt-1 w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
                 />
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h4 className="font-semibold text-gray-800">{module.name}</h4>
-                    {module.isMVP && (
-                      <span className="px-2 py-0.5 text-xs font-medium bg-primary-100 text-primary-800 rounded">
-                        MVP
-                      </span>
-                    )}
                     {isExcluded && (
                       <span className="px-2 py-0.5 text-xs font-medium bg-red-600 text-white rounded">
                         ⚠️ Won't fit in timeline
                       </span>
                     )}
+                    <span className="px-2 py-0.5 text-sm font-semibold bg-green-100 text-green-800 rounded ml-auto">
+                      ${calculateModulePrice(module).toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
                     <span>Frontend: {module.frontendDays}d</span>
@@ -114,7 +121,7 @@ export default function ModuleList({ modules, onToggle, modulesInTimeline }: Mod
           <div>
             <p className="text-sm font-medium text-blue-900">Note:</p>
             <p className="text-sm text-blue-800">
-              Modules marked with MVP badge are core features. Toggle any module on/off to adjust the project scope.
+              Toggle any module on/off to adjust the project scope.
             </p>
           </div>
         </div>
