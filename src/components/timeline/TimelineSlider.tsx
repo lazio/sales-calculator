@@ -63,8 +63,7 @@ export default function TimelineSlider({
 
         {/* Labels */}
         <div className="flex justify-between text-xs text-gray-500">
-          <span>Min: {minDays}d</span>
-          <span>Optimal: {optimalDays}d</span>
+          <span>Min: {minDays}d (50%)</span>
           <span>Max: {maxDays}d</span>
         </div>
       </div>
@@ -87,13 +86,10 @@ export default function TimelineSlider({
             <p className="text-sm font-medium text-blue-900">Timeline Impact:</p>
             <p className="text-sm text-blue-800">
               {sliderValue < optimalDays && (
-                <>Shorter timeline will exclude modules from the bottom. Excluded modules will be highlighted in red.</>
+                <>Compressed timeline will exclude modules from the bottom. Excluded modules will be highlighted in red.</>
               )}
               {sliderValue === optimalDays && (
-                <>This is the optimal timeline where all enabled modules fit.</>
-              )}
-              {sliderValue > optimalDays && (
-                <>Extended timeline provides buffer time. All enabled modules will fit comfortably.</>
+                <>This is the optimal timeline. All enabled modules fit perfectly.</>
               )}
             </p>
           </div>

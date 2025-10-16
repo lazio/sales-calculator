@@ -5,7 +5,6 @@ import {
   calculateQuote,
   QuoteCalculation,
   TIMELINE_MIN_PERCENTAGE,
-  TIMELINE_MAX_PERCENTAGE,
 } from '@/services/calculationEngine';
 
 export interface TimelineConstraints {
@@ -41,7 +40,7 @@ export function useQuoteCalculation(
   const timelineConstraints = useMemo(() => {
     const optimalTimeline = optimalQuote.totalDays;
     const minTimeline = Math.max(1, Math.ceil(optimalTimeline * TIMELINE_MIN_PERCENTAGE));
-    const maxTimeline = Math.ceil(optimalTimeline * TIMELINE_MAX_PERCENTAGE);
+    const maxTimeline = optimalTimeline; // Max is now the optimal timeline
 
     // If customTimeline exists but is now outside the new range, clamp it
     let effectiveCustomTimeline = customTimeline;
