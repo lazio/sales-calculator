@@ -14,7 +14,28 @@ export default function RateConfiguration({ rates, onRateChange, onRateDelete }:
         <p className="text-sm text-gray-600">Configure the monthly rates for each team role</p>
       </div>
 
-      <div className="space-y-3">
+      {rates.length === 0 ? (
+        <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+          <svg
+            className="mx-auto h-12 w-12 text-gray-400 mb-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <p className="text-gray-600 font-medium mb-1">No rates configured yet</p>
+          <p className="text-sm text-gray-500">
+            Upload a CSV file to automatically populate rates for all performers
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
         {rates.map((rate, index) => (
           <div
             key={rate.role}
@@ -55,29 +76,32 @@ export default function RateConfiguration({ rates, onRateChange, onRateDelete }:
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
-      <div className="mt-4 p-4 bg-primary-50 rounded-lg border border-primary-200">
-        <div className="flex items-start gap-2">
-          <svg
-            className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <div>
-            <p className="text-sm font-medium text-primary-900">Auto-saved:</p>
-            <p className="text-sm text-primary-700">
-              Your rates are automatically saved to local storage
-            </p>
+      {rates.length > 0 && (
+        <div className="mt-4 p-4 bg-primary-50 rounded-lg border border-primary-200">
+          <div className="flex items-start gap-2">
+            <svg
+              className="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-primary-900">Auto-saved:</p>
+              <p className="text-sm text-primary-700">
+                Your rates are automatically saved to local storage
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -11,9 +11,11 @@ export default function CSVImporter({ onImport }: CSVImporterProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const parseCSV = (file: File) => {
     setError(null);
+    setSuccessMessage(null);
 
     Papa.parse<CSVRow>(file, {
       header: true,
@@ -32,6 +34,10 @@ export default function CSVImporter({ onImport }: CSVImporterProps) {
           }
 
           onImport(modules);
+          setSuccessMessage(`Successfully imported ${modules.length} module${modules.length > 1 ? 's' : ''}`);
+
+          // Clear success message after 3 seconds
+          setTimeout(() => setSuccessMessage(null), 3000);
         } catch (err) {
           if (err instanceof ValidationError) {
             setError(err.message);
@@ -82,6 +88,23 @@ export default function CSVImporter({ onImport }: CSVImporterProps) {
     }
   };
 
+  const downloadTemplate = () => {
+    const template = `Module,Design (days),Front-end (days),Back-end (days),Design Performers,Development Performers
+Authentication,3,5,8,UI Designer,"Frontend Developer, Backend Developer"
+Dashboard,4,10,6,UI Designer,"Frontend Developer, Backend Developer, QA Engineer"
+User Profile,2,4,3,"UI Designer, UX Designer","Frontend Developer, Backend Developer"`;
+
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'project-template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-3">
       <div
@@ -127,10 +150,41 @@ export default function CSVImporter({ onImport }: CSVImporterProps) {
         </div>
 
         <p className="mt-2 text-sm text-gray-600">or drag and drop</p>
-        <p className="mt-1 text-xs text-gray-500">
+
+        <button
+          type="button"
+          onClick={downloadTemplate}
+          className="mt-3 inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Download Sample CSV Template
+        </button>
+
+        <p className="mt-2 text-xs text-gray-500">
           Required columns: Module, Design (days), Front-end (days), Back-end (days), Design Performers, Development Performers
         </p>
       </div>
+
+      {successMessage && (
+        <div className="p-3 bg-green-50 border border-green-200 rounded-lg animate-fade-in">
+          <div className="flex items-start">
+            <svg
+              className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <p className="ml-2 text-sm text-green-800">{successMessage}</p>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg">

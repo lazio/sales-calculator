@@ -61,8 +61,9 @@ describe('calculationEngine', () => {
       isEnabled: false,  // Disabled - Duration: MAX(2, 7, 9) = 9 days
     },
   ];
-  // Total timeline (enabled only): 8 + 10 = 18 days
-  // Total timeline (all enabled): 8 + 10 + 9 = 27 days
+  // NEW PARALLEL LOGIC:
+  // Enabled modules (1 & 2): design=3+4=7, frontend=5+10=15, backend=8+6=14 → timeline=MAX(7,15,14)=15 days
+  // All modules enabled (1,2,3): design=3+4+2=9, frontend=5+10+7=22, backend=8+6+9=23 → timeline=MAX(9,22,23)=23 days
 
   describe('Constants', () => {
     it('should have correct constant values', () => {
@@ -76,8 +77,8 @@ describe('calculationEngine', () => {
     it('should calculate timeline and effort correctly for enabled modules', () => {
       const stats = calculateModuleStats(mockModules);
 
-      // Timeline: max(3,5,8) + max(4,10,6) = 8 + 10 = 18 days
-      expect(stats.timelineDays).toBe(18);
+      // Timeline: MAX(total design, total frontend, total backend) = MAX(7, 15, 14) = 15 days
+      expect(stats.timelineDays).toBe(15);
 
       // Effort: (3+5+8) + (4+10+6) = 16 + 20 = 36 days
       expect(stats.effortDays).toBe(36);
@@ -94,8 +95,8 @@ describe('calculationEngine', () => {
       const allEnabled = mockModules.map(m => ({ ...m, isEnabled: true }));
       const stats = calculateModuleStats(allEnabled);
 
-      // Timeline: max(3,5,8) + max(4,10,6) + max(2,7,9) = 8 + 10 + 9 = 27 days
-      expect(stats.timelineDays).toBe(27);
+      // Timeline: MAX(total design, total frontend, total backend) = MAX(9, 22, 23) = 23 days
+      expect(stats.timelineDays).toBe(23);
 
       // Effort: (3+5+8) + (4+10+6) + (2+7+9) = 16 + 20 + 18 = 54 days
       expect(stats.effortDays).toBe(54);
@@ -206,7 +207,7 @@ describe('calculationEngine', () => {
       const quote = calculateQuote(mockRates, mockModules);
 
       const totalMonthlyRate = 23000; // Sum of all monthly rates
-      const timelineDays = 18; // Auth(8d) + Dashboard(10d) - only enabled modules
+      const timelineDays = 15; // MAX(7 design, 15 frontend, 14 backend) - parallel modules
 
       // Module 1: Design $600 + Dev $4000 = $4600
       // Module 2: Design $800 + Dev $5000 = $5800
@@ -241,10 +242,10 @@ describe('calculationEngine', () => {
 
     it('should handle custom timeline', () => {
       // Test: With new logic, custom timeline same as optimal means all modules fit
-      const customTimeline = 18; // Same as optimal
+      const customTimeline = 15; // Same as optimal
       const quote = calculateQuote(mockRates, mockModules, customTimeline);
 
-      expect(quote.totalDays).toBe(customTimeline); // 18 days
+      expect(quote.totalDays).toBe(customTimeline); // 15 days
       expect(quote.totalQuote).toBe(10400); // Same as basic test
       expect(quote.modulesInTimeline).toEqual(['module-1', 'module-2']); // All modules fit
     });
@@ -252,21 +253,22 @@ describe('calculationEngine', () => {
     it('should handle compressed timeline', () => {
       // Test: Compressed timeline - some modules excluded
       // Use case: Tight deadline, MVP delivery
-      const compressedTimeline = 10; // User wants faster (optimal is 18 days)
+      const compressedTimeline = 10; // User wants faster (optimal is 15 days)
       const quote = calculateQuote(mockRates, mockModules, compressedTimeline);
 
       expect(quote.totalDays).toBe(compressedTimeline); // 10 days timeline
-      // Module fitting: Auth(8d) fits, Dashboard(10d) doesn't fit in remaining 2 days
+      // With parallel logic: module-1 alone has MAX(3, 5, 8) = 8 days, fits in 10
+      // Adding module-2 would give MAX(7, 15, 14) = 15 days, too much
       expect(quote.modulesInTimeline).toEqual(['module-1']); // Only Auth included
       expect(quote.totalQuote).toBe(4600); // Only module-1: $600 + $4000
     });
 
     it('should handle very compressed timeline', () => {
-      const veryCompressedTimeline = 5; // Very tight (module-1 needs 8 days)
+      const veryCompressedTimeline = 5; // Very tight (module-1 needs MAX(3,5,8)=8 days)
       const quote = calculateQuote(mockRates, mockModules, veryCompressedTimeline);
 
       expect(quote.totalDays).toBe(veryCompressedTimeline);
-      // No modules fit (smallest module needs 8 days)
+      // No modules fit (module-1 needs 8 days)
       expect(quote.modulesInTimeline).toEqual([]);
       expect(quote.totalQuote).toBe(0); // No modules = no cost
     });
@@ -290,7 +292,7 @@ describe('calculationEngine', () => {
     });
 
     it('should include all enabled modules in normal timeline', () => {
-      const quote = calculateQuote(mockRates, mockModules, 18);
+      const quote = calculateQuote(mockRates, mockModules, 15);
 
       expect(quote.modulesInTimeline).toEqual(['module-1', 'module-2']);
     });
@@ -298,7 +300,7 @@ describe('calculationEngine', () => {
     it('should handle extended timeline', () => {
       // Extended timeline not supported - max = optimal
       // So this behaves same as optimal timeline
-      const extendedTimeline = 18; // Can't go above optimal with new logic
+      const extendedTimeline = 15; // Can't go above optimal with new logic
       const quote = calculateQuote(mockRates, mockModules, extendedTimeline);
 
       expect(quote.totalDays).toBe(extendedTimeline);
@@ -308,7 +310,7 @@ describe('calculationEngine', () => {
 
     it('should calculate correctly with discount and custom timeline', () => {
       // Test: Combined scenario - custom timeline + discount
-      const customTimeline = 18; // Optimal timeline
+      const customTimeline = 15; // Optimal timeline
       const discount = 15; // 15% discount negotiated
       const quote = calculateQuote(mockRates, mockModules, customTimeline, discount);
 

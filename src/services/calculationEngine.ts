@@ -8,9 +8,9 @@ export const TIMELINE_MAX_PERCENTAGE = 2; // 200% of optimal
 
 export interface QuoteCalculation {
   // Phase breakdown
-  designDays: number; // Total design phase days
-  developmentDays: number; // Total development phase days (MAX of frontend/backend per module)
-  totalDays: number; // Total timeline days (MAX of design and development per module, summed)
+  designDays: number; // Total design phase days (sum of all design days)
+  developmentDays: number; // Total development phase days (sum of MAX(frontend, backend) per module)
+  totalDays: number; // Total timeline days (MAX of total design, total frontend, total backend)
 
   // Cost breakdown
   designCost: number; // Cost of design phase
@@ -45,12 +45,12 @@ export interface ModulePriceCalculation {
  * Calculate the total quote based on project modules and monthly rates
  * Calculations are based on working days from CSV data
  * Timeline assumes:
- * - Design and development happen in parallel
- * - Frontend and backend work happens in parallel
- * - Module timeline = MAX(Design, Frontend, Backend)
+ * - All modules work in parallel (simultaneously)
+ * - Design, frontend, and backend work happens in parallel
+ * - Project timeline = MAX(total design days, total frontend days, total backend days)
  * Cost calculation:
  * - Design cost = sum of (design performer daily rates × design days)
- * - Development cost = sum of (development performer daily rates × MAX(frontend, backend) days)
+ * - Development cost = sum of (development performer daily rates × MAX(frontend, backend) days per module)
  */
 export function calculateQuote(
   rates: RateConfig[],
@@ -67,29 +67,34 @@ export function calculateQuote(
   };
 
   // Calculate optimal timeline days
-  // Timeline = sum of MAX(Design, Frontend, Backend) per module
-  const optimalTimeline = enabledModules
-    .reduce((sum, m) => sum + Math.max(m.designDays, m.frontendDays, m.backendDays), 0);
+  // All modules work in parallel, so timeline = MAX(total design, total frontend, total backend)
+  const totalDesignDaysAll = enabledModules.reduce((sum, m) => sum + m.designDays, 0);
+  const totalFrontendDays = enabledModules.reduce((sum, m) => sum + m.frontendDays, 0);
+  const totalBackendDays = enabledModules.reduce((sum, m) => sum + m.backendDays, 0);
+  const optimalTimeline = Math.max(totalDesignDaysAll, totalFrontendDays, totalBackendDays);
 
   // Use custom timeline if provided, otherwise use optimal
   const actualTimeline = customTimeline || optimalTimeline;
 
   // Determine which modules fit in the timeline
-  // When timeline is compressed, exclude modules from bottom up until we fit
+  // When timeline is compressed, exclude modules until we fit within the time constraint
   let modulesInTimeline: string[] = [];
   let modulesToInclude = [...enabledModules];
 
   if (customTimeline && customTimeline < optimalTimeline) {
-    // Compressed timeline: fit modules until we run out of time
-    let remainingTime = customTimeline;
+    // Compressed timeline: remove modules from bottom until we fit
+    // We need to find a subset where MAX(sum design, sum frontend, sum backend) <= customTimeline
     modulesToInclude = [];
 
-    // Start from the beginning (top) and add modules until we run out of time
     for (const module of enabledModules) {
-      const moduleTime = Math.max(module.designDays, module.frontendDays, module.backendDays);
-      if (remainingTime >= moduleTime) {
+      const testModules = [...modulesToInclude, module];
+      const testDesign = testModules.reduce((sum, m) => sum + m.designDays, 0);
+      const testFrontend = testModules.reduce((sum, m) => sum + m.frontendDays, 0);
+      const testBackend = testModules.reduce((sum, m) => sum + m.backendDays, 0);
+      const testTimeline = Math.max(testDesign, testFrontend, testBackend);
+
+      if (testTimeline <= customTimeline) {
         modulesToInclude.push(module);
-        remainingTime -= moduleTime;
       }
     }
   } else {
@@ -168,9 +173,11 @@ export function calculateQuote(
 export function calculateModuleStats(modules: ProjectModule[]): ModuleStats {
   const enabledModules = modules.filter(m => m.isEnabled);
 
-  // Timeline: parallel work (max of design/frontend/backend per module, summed)
-  const timelineDays = enabledModules
-    .reduce((sum, m) => sum + Math.max(m.designDays, m.frontendDays, m.backendDays), 0);
+  // Timeline: all modules work in parallel, so MAX(total design, total frontend, total backend)
+  const totalDesign = enabledModules.reduce((sum, m) => sum + m.designDays, 0);
+  const totalFrontend = enabledModules.reduce((sum, m) => sum + m.frontendDays, 0);
+  const totalBackend = enabledModules.reduce((sum, m) => sum + m.backendDays, 0);
+  const timelineDays = Math.max(totalDesign, totalFrontend, totalBackend);
 
   // Effort: sum of all work
   const effortDays = enabledModules
