@@ -70,6 +70,10 @@ function App() {
     // Don't reset customTimeline - let it recalculate which modules fit
   };
 
+  const handleBulkToggle = (enabled: boolean) => {
+    setModules(modules.map(m => ({ ...m, isEnabled: enabled })));
+  };
+
   const handleTimelineChange = (days: number) => {
     setCustomTimeline(days);
   };
@@ -99,6 +103,7 @@ function App() {
                 <ModuleList
                   modules={modules}
                   onToggle={handleModuleToggle}
+                  onBulkToggle={handleBulkToggle}
                   modulesInTimeline={quote.modulesInTimeline}
                   rates={rates}
                 />

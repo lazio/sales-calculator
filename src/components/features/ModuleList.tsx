@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { ProjectModule } from '@/types/project.types';
 import { RateConfig } from '@/types/rates.types';
 import { calculateModuleStats, calculateModulePrice } from '@/services/calculationEngine';
@@ -5,11 +6,17 @@ import { calculateModuleStats, calculateModulePrice } from '@/services/calculati
 interface ModuleListProps {
   modules: ProjectModule[];
   onToggle: (id: string) => void;
+  onBulkToggle?: (enabled: boolean) => void;
   modulesInTimeline?: string[]; // IDs of modules that fit in the timeline
   rates: RateConfig[];
 }
 
-export default function ModuleList({ modules, onToggle, modulesInTimeline, rates }: ModuleListProps) {
+type SortOption = 'name' | 'price' | 'timeline';
+
+export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInTimeline, rates }: ModuleListProps) {
+  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [sortDesc, setSortDesc] = useState(false);
+
   if (modules.length === 0) {
     return null;
   }
@@ -17,22 +24,109 @@ export default function ModuleList({ modules, onToggle, modulesInTimeline, rates
   // Calculate statistics using centralized business logic
   const { timelineDays, effortDays } = calculateModuleStats(modules);
 
+  // Calculate total cost for percentage display
+  const totalCost = useMemo(() => {
+    return modules
+      .filter(m => m.isEnabled)
+      .reduce((sum, m) => sum + calculateModulePrice(m, rates), 0);
+  }, [modules, rates]);
+
+  // Sort modules
+  const sortedModules = useMemo(() => {
+    const sorted = [...modules];
+    sorted.sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'price':
+          comparison = calculateModulePrice(a, rates) - calculateModulePrice(b, rates);
+          break;
+        case 'timeline':
+          comparison = Math.max(a.designDays, a.frontendDays, a.backendDays) -
+                      Math.max(b.designDays, b.frontendDays, b.backendDays);
+          break;
+      }
+      return sortDesc ? -comparison : comparison;
+    });
+    return sorted;
+  }, [modules, sortBy, sortDesc, rates]);
+
+  const handleSort = (option: SortOption) => {
+    if (sortBy === option) {
+      setSortDesc(!sortDesc);
+    } else {
+      setSortBy(option);
+      setSortDesc(false);
+    }
+  };
+
   return (
     <div className="space-y-4 animate-slide-up">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800">Project Modules</h3>
-          <p className="text-sm text-gray-600">
-            {modules.filter(m => m.isEnabled).length} of {modules.length} enabled • {timelineDays}d timeline • {effortDays}d effort
-          </p>
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">Project Modules</h3>
+            <p className="text-sm text-gray-600">
+              {modules.filter(m => m.isEnabled).length} of {modules.length} enabled • {timelineDays}d timeline • {effortDays}d effort
+            </p>
+          </div>
+          {onBulkToggle && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => onBulkToggle(true)}
+                className="px-3 py-1 text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 rounded transition-colors"
+              >
+                Enable All
+              </button>
+              <button
+                onClick={() => onBulkToggle(false)}
+                className="px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+              >
+                Disable All
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Sort Controls */}
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-gray-600">Sort by:</span>
+          <button
+            onClick={() => handleSort('name')}
+            className={`px-2 py-1 rounded transition-colors ${
+              sortBy === 'name' ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Name {sortBy === 'name' && (sortDesc ? '↓' : '↑')}
+          </button>
+          <button
+            onClick={() => handleSort('price')}
+            className={`px-2 py-1 rounded transition-colors ${
+              sortBy === 'price' ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Price {sortBy === 'price' && (sortDesc ? '↓' : '↑')}
+          </button>
+          <button
+            onClick={() => handleSort('timeline')}
+            className={`px-2 py-1 rounded transition-colors ${
+              sortBy === 'timeline' ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Timeline {sortBy === 'timeline' && (sortDesc ? '↓' : '↑')}
+          </button>
         </div>
       </div>
 
       <div className="space-y-2">
-        {modules.map((module) => {
+        {sortedModules.map((module) => {
           const isEnabled = module.isEnabled;
           const fitsInTimeline = !modulesInTimeline || modulesInTimeline.includes(module.id);
           const isExcluded = isEnabled && !fitsInTimeline;
+          const modulePrice = calculateModulePrice(module, rates);
+          const costPercentage = totalCost > 0 ? Math.round((modulePrice / totalCost) * 100) : 0;
 
           return (
             <div
@@ -62,7 +156,10 @@ export default function ModuleList({ modules, onToggle, modulesInTimeline, rates
                       </span>
                     )}
                     <span className="px-2 py-0.5 text-sm font-semibold bg-green-100 text-green-800 rounded ml-auto">
-                      ${calculateModulePrice(module, rates).toLocaleString()}
+                      ${modulePrice.toLocaleString()}
+                      {isEnabled && totalCost > 0 && (
+                        <span className="text-xs text-green-600 ml-1">({costPercentage}%)</span>
+                      )}
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
