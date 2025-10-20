@@ -128,7 +128,7 @@ export default function CSVImporter({ onImport }: CSVImporterProps) {
 
         <p className="mt-2 text-sm text-gray-600">or drag and drop</p>
         <p className="mt-1 text-xs text-gray-500">
-          Required columns: Module, Front-end, Back-end, Performer
+          Required columns: Module, Design (days), Front-end (days), Back-end (days), Design Performers, Development Performers
         </p>
       </div>
 

@@ -13,6 +13,7 @@ import { DEFAULT_RATES, RateConfig, STORAGE_KEY } from '@/types/rates.types';
 import { ProjectModule } from '@/types/project.types';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useQuoteCalculation } from '@/hooks/useQuoteCalculation';
+import { getMissingPerformers } from '@/utils/performers';
 
 function App() {
   // Use custom hook for localStorage management
@@ -41,9 +42,25 @@ function App() {
     setRates(updatedRates);
   };
 
+  const handleRateDelete = (index: number) => {
+    const updatedRates = rates.filter((_, i) => i !== index);
+    setRates(updatedRates);
+  };
+
   const handleCSVImport = (importedModules: ProjectModule[]) => {
     setModules(importedModules);
     setCustomTimeline(null); // Reset timeline when new modules are imported
+
+    // Add missing performers to rates with default rate
+    const missingPerformers = getMissingPerformers(importedModules, rates.map(r => r.role));
+
+    if (missingPerformers.length > 0) {
+      const newRates: RateConfig[] = missingPerformers.map(role => ({
+        role,
+        monthlyRate: 1000, // Default rate
+      }));
+      setRates([...rates, ...newRates]);
+    }
   };
 
   const handleModuleToggle = (id: string) => {
@@ -73,7 +90,7 @@ function App() {
 
             {/* Rate Configuration */}
             <CollapsibleSection title="Monthly Rates" defaultExpanded={true}>
-              <RateConfiguration rates={rates} onRateChange={handleRateChange} />
+              <RateConfiguration rates={rates} onRateChange={handleRateChange} onRateDelete={handleRateDelete} />
             </CollapsibleSection>
 
             {/* Feature Toggles */}
@@ -113,6 +130,10 @@ function App() {
             monthlyFee={quote.monthlyFee}
             productPrice={quote.productPrice}
             totalDays={quote.totalDays}
+            designDays={quote.designDays}
+            developmentDays={quote.developmentDays}
+            designCost={quote.designCost}
+            developmentCost={quote.developmentCost}
             teamSizeMultiplier={quote.teamSizeMultiplier}
             discountAmount={quote.discountAmount}
             finalTotal={quote.finalTotal}

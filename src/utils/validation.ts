@@ -79,10 +79,13 @@ export function isProjectModule(value: unknown): value is ProjectModule {
   return (
     typeof obj.id === 'string' &&
     typeof obj.name === 'string' &&
+    typeof obj.designDays === 'number' &&
     typeof obj.frontendDays === 'number' &&
     typeof obj.backendDays === 'number' &&
-    Array.isArray(obj.performers) &&
-    obj.performers.every((p) => typeof p === 'string') &&
+    Array.isArray(obj.designPerformers) &&
+    obj.designPerformers.every((p) => typeof p === 'string') &&
+    Array.isArray(obj.developmentPerformers) &&
+    obj.developmentPerformers.every((p) => typeof p === 'string') &&
     typeof obj.isEnabled === 'boolean'
   );
 }
@@ -96,6 +99,12 @@ export function validateProjectModule(module: unknown): ProjectModule {
   }
 
   // Additional validation
+  if (module.designDays < 0 || module.designDays > 1000) {
+    throw new ValidationError(
+      `Design days must be between 0 and 1000. Got: ${module.designDays}`
+    );
+  }
+
   if (module.frontendDays < 0 || module.frontendDays > 1000) {
     throw new ValidationError(
       `Frontend days must be between 0 and 1000. Got: ${module.frontendDays}`
@@ -130,16 +139,24 @@ export function validateCSVRow(row: unknown, rowIndex: number): CSVRow {
     throw new ValidationError(`Row ${rowIndex + 1}: Missing or invalid 'Module' field`);
   }
 
-  if (typeof obj['Front-end'] !== 'string' && typeof obj['Front-end'] !== 'number') {
-    throw new ValidationError(`Row ${rowIndex + 1}: Missing or invalid 'Front-end' field`);
+  if (typeof obj['Design (days)'] !== 'string' && typeof obj['Design (days)'] !== 'number') {
+    throw new ValidationError(`Row ${rowIndex + 1}: Missing or invalid 'Design (days)' field`);
   }
 
-  if (typeof obj['Back-end'] !== 'string' && typeof obj['Back-end'] !== 'number') {
-    throw new ValidationError(`Row ${rowIndex + 1}: Missing or invalid 'Back-end' field`);
+  if (typeof obj['Front-end (days)'] !== 'string' && typeof obj['Front-end (days)'] !== 'number') {
+    throw new ValidationError(`Row ${rowIndex + 1}: Missing or invalid 'Front-end (days)' field`);
   }
 
-  if (typeof obj.Performer !== 'string') {
-    throw new ValidationError(`Row ${rowIndex + 1}: Missing or invalid 'Performer' field`);
+  if (typeof obj['Back-end (days)'] !== 'string' && typeof obj['Back-end (days)'] !== 'number') {
+    throw new ValidationError(`Row ${rowIndex + 1}: Missing or invalid 'Back-end (days)' field`);
+  }
+
+  if (typeof obj['Design Performers'] !== 'string') {
+    throw new ValidationError(`Row ${rowIndex + 1}: Missing or invalid 'Design Performers' field`);
+  }
+
+  if (typeof obj['Development Performers'] !== 'string') {
+    throw new ValidationError(`Row ${rowIndex + 1}: Missing or invalid 'Development Performers' field`);
   }
 
   return obj as unknown as CSVRow;
@@ -149,27 +166,45 @@ export function validateCSVRow(row: unknown, rowIndex: number): CSVRow {
  * Convert and validate CSV row to ProjectModule
  */
 export function csvRowToModule(row: CSVRow, index: number): ProjectModule {
-  const frontendDays = parseFloat(String(row['Front-end']));
-  const backendDays = parseFloat(String(row['Back-end']));
+  const designDays = parseFloat(String(row['Design (days)']));
+  const frontendDays = parseFloat(String(row['Front-end (days)']));
+  const backendDays = parseFloat(String(row['Back-end (days)']));
+
+  if (isNaN(designDays) || designDays < 0) {
+    throw new ValidationError(
+      `Row ${index + 1}: Design days must be a positive number. Got: ${row['Design (days)']}`
+    );
+  }
 
   if (isNaN(frontendDays) || frontendDays < 0) {
     throw new ValidationError(
-      `Row ${index + 1}: Frontend days must be a positive number. Got: ${row['Front-end']}`
+      `Row ${index + 1}: Frontend days must be a positive number. Got: ${row['Front-end (days)']}`
     );
   }
 
   if (isNaN(backendDays) || backendDays < 0) {
     throw new ValidationError(
-      `Row ${index + 1}: Backend days must be a positive number. Got: ${row['Back-end']}`
+      `Row ${index + 1}: Backend days must be a positive number. Got: ${row['Back-end (days)']}`
     );
   }
+
+  // Parse performers - split by comma and trim whitespace
+  const designPerformers = row['Design Performers']
+    ? row['Design Performers'].split(',').map((p) => p.trim()).filter(p => p.length > 0)
+    : [];
+
+  const developmentPerformers = row['Development Performers']
+    ? row['Development Performers'].split(',').map((p) => p.trim()).filter(p => p.length > 0)
+    : [];
 
   const module: ProjectModule = {
     id: `module-${index}`,
     name: row.Module.trim(),
+    designDays,
     frontendDays,
     backendDays,
-    performers: row.Performer ? row.Performer.split(',').map((p) => p.trim()) : [],
+    designPerformers,
+    developmentPerformers,
     isEnabled: true,
   };
 

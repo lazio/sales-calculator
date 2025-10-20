@@ -3,6 +3,10 @@ interface QuoteSummaryProps {
   monthlyFee: number;
   productPrice: number;
   totalDays: number;
+  designDays?: number;
+  developmentDays?: number;
+  designCost?: number;
+  developmentCost?: number;
   teamSizeMultiplier?: number;
   discountAmount?: number;
   finalTotal?: number;
@@ -11,8 +15,11 @@ interface QuoteSummaryProps {
 export default function QuoteSummary({
   totalQuote,
   monthlyFee,
-  productPrice,
   totalDays,
+  designDays = 0,
+  developmentDays = 0,
+  designCost = 0,
+  developmentCost = 0,
   discountAmount = 0,
   finalTotal
 }: QuoteSummaryProps) {
@@ -42,35 +49,48 @@ export default function QuoteSummary({
         </p>
         {totalDays > 0 && (
           <p className="text-white/70 text-sm mt-1">
-            Frontend and backend work in parallel
+            Design and development work in parallel
           </p>
         )}
       </div>
 
       {/* Price Breakdown */}
       <div className="space-y-4 mb-8">
+        {/* Design Phase */}
+        {designDays > 0 && (
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5">
+            <div className="flex justify-between items-center mb-1">
+              <h3 className="text-lg font-semibold text-white">Design Phase</h3>
+              <span className="text-2xl font-bold text-white">
+                ${designCost.toLocaleString()}
+              </span>
+            </div>
+            <p className="text-sm text-white/80">{designDays} days</p>
+          </div>
+        )}
+
+        {/* Development Phase */}
+        {developmentDays > 0 && (
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5">
+            <div className="flex justify-between items-center mb-1">
+              <h3 className="text-lg font-semibold text-white">Development Phase</h3>
+              <span className="text-2xl font-bold text-white">
+                ${developmentCost.toLocaleString()}
+              </span>
+            </div>
+            <p className="text-sm text-white/80">{developmentDays} days</p>
+          </div>
+        )}
+
         {/* Monthly Fee */}
         <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5">
           <div className="flex justify-between items-center mb-1">
-            <h3 className="text-lg font-semibold text-white">Monthly Fee</h3>
+            <h3 className="text-lg font-semibold text-white">Monthly Rate Card</h3>
             <span className="text-2xl font-bold text-white">
               ${monthlyFee.toLocaleString()}
             </span>
           </div>
           <p className="text-sm text-white/80">Total monthly fee for all performers</p>
-        </div>
-
-        {/* Product Price */}
-        <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5">
-          <div className="flex justify-between items-center mb-1">
-            <h3 className="text-lg font-semibold text-white">Product Price</h3>
-            <span className="text-2xl font-bold text-white">
-              ${productPrice.toLocaleString()}
-            </span>
-          </div>
-          <p className="text-sm text-white/80">
-            (${monthlyFee.toLocaleString()} / 20 days) × {totalDays} days
-          </p>
         </div>
       </div>
     </div>

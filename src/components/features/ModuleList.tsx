@@ -66,22 +66,45 @@ export default function ModuleList({ modules, onToggle, modulesInTimeline, rates
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+                    <span>Design: {module.designDays}d</span>
                     <span>Frontend: {module.frontendDays}d</span>
                     <span>Backend: {module.backendDays}d</span>
                     <span className="text-gray-500">
-                      Total: {module.frontendDays + module.backendDays}d
+                      Timeline: {Math.max(module.designDays, module.frontendDays, module.backendDays)}d
                     </span>
                   </div>
-                  {module.performers.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {module.performers.map((performer, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded"
-                        >
-                          {performer}
-                        </span>
-                      ))}
+                  {(module.designPerformers.length > 0 || module.developmentPerformers.length > 0) && (
+                    <div className="mt-2 space-y-1">
+                      {module.designPerformers.length > 0 && (
+                        <div className="flex items-start gap-1">
+                          <span className="text-xs text-gray-500 font-medium min-w-[60px]">Design:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {module.designPerformers.map((performer, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded"
+                              >
+                                {performer}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {module.developmentPerformers.length > 0 && (
+                        <div className="flex items-start gap-1">
+                          <span className="text-xs text-gray-500 font-medium min-w-[60px]">Dev:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {module.developmentPerformers.map((performer, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded"
+                              >
+                                {performer}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

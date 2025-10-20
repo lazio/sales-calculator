@@ -12,41 +12,53 @@ import { RateConfig } from '@/types/rates.types';
 import { ProjectModule } from '@/types/project.types';
 
 describe('calculationEngine', () => {
-  // Mock team with monthly rates totaling $20,000/month
-  // Daily rate: $20,000 / 20 business days = $1,000/day
+  // Mock team with monthly rates totaling $23,000/month
+  // Individual daily rates:
+  // - UI Designer: $4,000/month = $200/day
+  // - Frontend Developer: $5,000/month = $250/day
+  // - Backend Developer: $5,000/month = $250/day
+  // - QA Engineer: $4,000/month = $200/day
+  // - PM: $5,000/month = $250/day
   const mockRates: RateConfig[] = [
+    { role: 'UI Designer', monthlyRate: 4000 },
     { role: 'Frontend Developer', monthlyRate: 5000 },
     { role: 'Backend Developer', monthlyRate: 5000 },
     { role: 'QA Engineer', monthlyRate: 4000 },
-    { role: 'Project Manager', monthlyRate: 6000 },
+    { role: 'PM', monthlyRate: 5000 },
   ];
 
   // Mock project modules
-  // Timeline calculation uses MAX(frontend, backend) since work happens in parallel
+  // Timeline calculation uses MAX(design, frontend, backend) since work happens in parallel
   const mockModules: ProjectModule[] = [
     {
       id: 'module-1',
       name: 'Authentication',
+      designDays: 3,     // Design: 3 days
       frontendDays: 5,   // Frontend: 5 days
       backendDays: 8,    // Backend: 8 days (longer)
-      performers: ['Frontend Dev', 'Backend Dev'],
-      isEnabled: true,   // Duration: MAX(5, 8) = 8 days
+      designPerformers: ['UI Designer'],
+      developmentPerformers: ['Frontend Developer', 'Backend Developer'],
+      isEnabled: true,   // Duration: MAX(3, 5, 8) = 8 days
     },
     {
       id: 'module-2',
       name: 'Dashboard',
+      designDays: 4,     // Design: 4 days
       frontendDays: 10,  // Frontend: 10 days (longer)
       backendDays: 6,    // Backend: 6 days
-      performers: ['Frontend Dev', 'Backend Dev'],
-      isEnabled: true,   // Duration: MAX(10, 6) = 10 days
+      designPerformers: ['UI Designer'],
+      developmentPerformers: ['Frontend Developer', 'Backend Developer'],
+      isEnabled: true,   // Duration: MAX(4, 10, 6) = 10 days
     },
     {
       id: 'module-3',
       name: 'Reporting',
+      designDays: 2,     // Design: 2 days
       frontendDays: 7,   // Frontend: 7 days
       backendDays: 9,    // Backend: 9 days (longer)
-      performers: ['Frontend Dev', 'Backend Dev'],
-      isEnabled: false,  // Disabled - Duration: MAX(7, 9) = 9 days
+      designPerformers: ['UI Designer'],
+      developmentPerformers: ['Frontend Developer', 'Backend Developer'],
+      isEnabled: false,  // Disabled - Duration: MAX(2, 7, 9) = 9 days
     },
   ];
   // Total timeline (enabled only): 8 + 10 = 18 days
@@ -64,11 +76,11 @@ describe('calculationEngine', () => {
     it('should calculate timeline and effort correctly for enabled modules', () => {
       const stats = calculateModuleStats(mockModules);
 
-      // Timeline: max(5,8) + max(10,6) = 8 + 10 = 18 days
+      // Timeline: max(3,5,8) + max(4,10,6) = 8 + 10 = 18 days
       expect(stats.timelineDays).toBe(18);
 
-      // Effort: (5+8) + (10+6) = 13 + 16 = 29 days
-      expect(stats.effortDays).toBe(29);
+      // Effort: (3+5+8) + (4+10+6) = 16 + 20 = 36 days
+      expect(stats.effortDays).toBe(36);
     });
 
     it('should return zero for empty modules', () => {
@@ -82,33 +94,34 @@ describe('calculationEngine', () => {
       const allEnabled = mockModules.map(m => ({ ...m, isEnabled: true }));
       const stats = calculateModuleStats(allEnabled);
 
-      // Timeline: max(5,8) + max(10,6) + max(7,9) = 8 + 10 + 9 = 27 days
+      // Timeline: max(3,5,8) + max(4,10,6) + max(2,7,9) = 8 + 10 + 9 = 27 days
       expect(stats.timelineDays).toBe(27);
 
-      // Effort: (5+8) + (10+6) + (7+9) = 13 + 16 + 16 = 45 days
-      expect(stats.effortDays).toBe(45);
+      // Effort: (3+5+8) + (4+10+6) + (2+7+9) = 16 + 20 + 18 = 54 days
+      expect(stats.effortDays).toBe(54);
     });
   });
 
   describe('calculateModulePrice', () => {
     it('should calculate module price correctly', () => {
-      const module = mockModules[0]; // 5 frontend, 8 backend
+      const module = mockModules[0]; // 3 design, 5 frontend, 8 backend
 
       const price = calculateModulePrice(module, mockRates);
 
-      // Timeline: max(5, 8) = 8 days
-      // Total monthly rate: 20000 (5000 + 5000 + 4000 + 6000)
-      // Price: (20000 / 20) * 8 = 1000 * 8 = 8000
-      expect(price).toBe(8000);
+      // Design: UI Designer ($200/day) × 3 days = $600
+      // Development: (Frontend $250 + Backend $250) × MAX(5,8)=8 days = $4000
+      // Total: $600 + $4000 = $4600
+      expect(price).toBe(4600);
     });
 
     it('should handle frontend-heavy modules', () => {
-      const module = mockModules[1]; // 10 frontend, 6 backend
+      const module = mockModules[1]; // 4 design, 10 frontend, 6 backend
       const price = calculateModulePrice(module, mockRates);
 
-      // Timeline: max(10, 6) = 10 days
-      // Price: (20000 / 20) * 10 = 10000
-      expect(price).toBe(10000);
+      // Design: UI Designer ($200/day) × 4 days = $800
+      // Development: (Frontend $250 + Backend $250) × MAX(10,6)=10 days = $5000
+      // Total: $800 + $5000 = $5800
+      expect(price).toBe(5800);
     });
   });
 
@@ -119,69 +132,121 @@ describe('calculationEngine', () => {
       expect(prices).toHaveLength(3);
       expect(prices[0]).toEqual({
         moduleId: 'module-1',
-        price: 8000,
-        timelineDays: 8,
+        price: 4600, // $600 design + $4000 dev
+        timelineDays: 8, // MAX(3,5,8)
       });
       expect(prices[1]).toEqual({
         moduleId: 'module-2',
-        price: 10000,
-        timelineDays: 10,
+        price: 5800, // $800 design + $5000 dev
+        timelineDays: 10, // MAX(4,10,6)
       });
       expect(prices[2]).toEqual({
         moduleId: 'module-3',
-        price: 9000,
-        timelineDays: 9,
+        price: 4900, // $400 design + $4500 dev
+        timelineDays: 9, // MAX(2,7,9)
       });
     });
   });
 
   describe('calculateQuote', () => {
-    it('should calculate basic quote with no customization', () => {
-      // Test: Basic time & materials calculation
-      // Formula: (Monthly Rate / 20 days) × Timeline Days
+    it('should calculate design costs separately from development', () => {
+      // Test: Design cost calculation with specific performers
       const quote = calculateQuote(mockRates, mockModules);
 
-      const totalMonthlyRate = 20000; // Sum of all monthly rates
+      // Verify design days and cost are tracked separately
+      expect(quote.designDays).toBe(7); // 3 + 4 from enabled modules
+      expect(quote.designCost).toBe(1400); // UI Designer @ $200/day × 7 days
+
+      // Verify development is separate
+      expect(quote.developmentDays).toBe(18); // MAX(5,8)=8 + MAX(10,6)=10
+      expect(quote.developmentCost).toBe(9000); // (FE + BE) @ $500/day × 18 days
+    });
+
+    it('should handle modules with no design performers', () => {
+      const moduleWithoutDesign: ProjectModule = {
+        id: 'module-no-design',
+        name: 'API Only',
+        designDays: 0,
+        frontendDays: 5,
+        backendDays: 5,
+        designPerformers: [],
+        developmentPerformers: ['Frontend Developer', 'Backend Developer'],
+        isEnabled: true,
+      };
+
+      const quote = calculateQuote(mockRates, [moduleWithoutDesign]);
+
+      expect(quote.designDays).toBe(0);
+      expect(quote.designCost).toBe(0);
+      expect(quote.developmentCost).toBeGreaterThan(0);
+    });
+
+    it('should handle missing performer rates gracefully', () => {
+      const moduleWithUnknownPerformer: ProjectModule = {
+        id: 'module-unknown',
+        name: 'Unknown Performer Module',
+        designDays: 3,
+        frontendDays: 5,
+        backendDays: 5,
+        designPerformers: ['Unknown Designer'], // Not in rates
+        developmentPerformers: ['Frontend Developer'],
+        isEnabled: true,
+      };
+
+      const quote = calculateQuote(mockRates, [moduleWithUnknownPerformer]);
+
+      // Design cost should be 0 since performer not found
+      expect(quote.designCost).toBe(0);
+      // Development should still work
+      expect(quote.developmentCost).toBeGreaterThan(0);
+    });
+
+    it('should calculate basic quote with no customization', () => {
+      // Test: Calculate based on individual performer rates
+      const quote = calculateQuote(mockRates, mockModules);
+
+      const totalMonthlyRate = 23000; // Sum of all monthly rates
       const timelineDays = 18; // Auth(8d) + Dashboard(10d) - only enabled modules
-      const dailyRate = totalMonthlyRate / 20; // $1,000/day
-      const expectedTotal = Math.round(dailyRate * timelineDays); // $1,000 × 18 = $18,000
+
+      // Module 1: Design $600 + Dev $4000 = $4600
+      // Module 2: Design $800 + Dev $5000 = $5800
+      // Total: $4600 + $5800 = $10,400
+      const expectedTotal = 10400;
 
       expect(quote.monthlyFee).toBe(totalMonthlyRate); // Reference rate card
       expect(quote.totalDays).toBe(timelineDays);
+      expect(quote.designDays).toBe(7); // 3 + 4
+      expect(quote.developmentDays).toBe(18); // 8 + 10
+      expect(quote.designCost).toBe(1400); // $600 + $800
+      expect(quote.developmentCost).toBe(9000); // $4000 + $5000
       expect(quote.productPrice).toBe(expectedTotal); // Same as totalQuote
-      expect(quote.totalQuote).toBe(expectedTotal); // $18,000 (time & materials)
+      expect(quote.totalQuote).toBe(expectedTotal);
       expect(quote.discountAmount).toBe(0);
       expect(quote.finalTotal).toBe(quote.totalQuote);
       expect(quote.modulesInTimeline).toEqual(['module-1', 'module-2']);
     });
 
     it('should apply discount correctly', () => {
-      // Test: Discount reduces final price, not daily rate
+      // Test: Discount reduces final price
       const discount = 10; // 10% discount
       const quote = calculateQuote(mockRates, mockModules, undefined, discount);
 
-      const timelineDays = 18;
-      const totalQuote = Math.round((20000 / 20) * timelineDays); // $18,000
-      const discountAmount = Math.round((totalQuote * discount) / 100); // $1,800 (10%)
+      const totalQuote = 10400; // $4600 + $5800
+      const discountAmount = Math.round((totalQuote * discount) / 100); // $1,040 (10%)
 
-      expect(quote.totalQuote).toBe(totalQuote); // $18,000 before discount
-      expect(quote.discountAmount).toBe(discountAmount); // $1,800
-      expect(quote.finalTotal).toBe(totalQuote - discountAmount); // $16,200 after discount
+      expect(quote.totalQuote).toBe(totalQuote); // $10,400 before discount
+      expect(quote.discountAmount).toBe(discountAmount); // $1,040
+      expect(quote.finalTotal).toBe(totalQuote - discountAmount); // $9,360 after discount
     });
 
     it('should handle custom timeline', () => {
-      // Test: Extended timeline - paying for more days than needed
-      // Use case: Buffer time, quality improvements, reduced pressure
-      const customTimeline = 30; // User wants 30 days (optimal is 18)
+      // Test: With new logic, custom timeline same as optimal means all modules fit
+      const customTimeline = 18; // Same as optimal
       const quote = calculateQuote(mockRates, mockModules, customTimeline);
 
-      const totalMonthlyRate = 20000;
-      const expectedTotal = Math.round((totalMonthlyRate / 20) * customTimeline); // $30,000
-
-      expect(quote.totalDays).toBe(customTimeline); // 30 days requested
-      expect(quote.productPrice).toBe(expectedTotal);
-      expect(quote.totalQuote).toBe(expectedTotal); // $30,000 (paying for 30 days)
-      expect(quote.modulesInTimeline).toEqual(['module-1', 'module-2']); // All modules still fit
+      expect(quote.totalDays).toBe(customTimeline); // 18 days
+      expect(quote.totalQuote).toBe(10400); // Same as basic test
+      expect(quote.modulesInTimeline).toEqual(['module-1', 'module-2']); // All modules fit
     });
 
     it('should handle compressed timeline', () => {
@@ -193,16 +258,17 @@ describe('calculationEngine', () => {
       expect(quote.totalDays).toBe(compressedTimeline); // 10 days timeline
       // Module fitting: Auth(8d) fits, Dashboard(10d) doesn't fit in remaining 2 days
       expect(quote.modulesInTimeline).toEqual(['module-1']); // Only Auth included
-      expect(quote.totalQuote).toBe(10000); // $1,000/day × 10 days
+      expect(quote.totalQuote).toBe(4600); // Only module-1: $600 + $4000
     });
 
     it('should handle very compressed timeline', () => {
-      const veryCompressedTimeline = 5; // Very tight
+      const veryCompressedTimeline = 5; // Very tight (module-1 needs 8 days)
       const quote = calculateQuote(mockRates, mockModules, veryCompressedTimeline);
 
       expect(quote.totalDays).toBe(veryCompressedTimeline);
-      // No modules fit
+      // No modules fit (smallest module needs 8 days)
       expect(quote.modulesInTimeline).toEqual([]);
+      expect(quote.totalQuote).toBe(0); // No modules = no cost
     });
 
     it('should handle empty modules', () => {
@@ -230,27 +296,28 @@ describe('calculationEngine', () => {
     });
 
     it('should handle extended timeline', () => {
-      const extendedTimeline = 50;
+      // Extended timeline not supported - max = optimal
+      // So this behaves same as optimal timeline
+      const extendedTimeline = 18; // Can't go above optimal with new logic
       const quote = calculateQuote(mockRates, mockModules, extendedTimeline);
 
       expect(quote.totalDays).toBe(extendedTimeline);
       expect(quote.modulesInTimeline).toEqual(['module-1', 'module-2']);
+      expect(quote.totalQuote).toBe(10400);
     });
 
     it('should calculate correctly with discount and custom timeline', () => {
       // Test: Combined scenario - custom timeline + discount
-      // Real-world: Client wants specific timeline with negotiated discount
-      const customTimeline = 25; // 25 days requested
+      const customTimeline = 18; // Optimal timeline
       const discount = 15; // 15% discount negotiated
       const quote = calculateQuote(mockRates, mockModules, customTimeline, discount);
 
-      const totalMonthlyRate = 20000;
-      const totalQuote = Math.round((totalMonthlyRate / 20) * customTimeline); // $25,000
-      const discountAmount = Math.round((totalQuote * discount) / 100); // $3,750 (15%)
+      const totalQuote = 10400; // $4600 + $5800
+      const discountAmount = Math.round((totalQuote * discount) / 100); // $1,560 (15%)
 
-      expect(quote.totalQuote).toBe(totalQuote); // $25,000 before discount
-      expect(quote.discountAmount).toBe(discountAmount); // $3,750
-      expect(quote.finalTotal).toBe(totalQuote - discountAmount); // $21,250 final price
+      expect(quote.totalQuote).toBe(totalQuote); // $10,400 before discount
+      expect(quote.discountAmount).toBe(discountAmount); // $1,560
+      expect(quote.finalTotal).toBe(totalQuote - discountAmount); // $8,840 final price
     });
   });
 });

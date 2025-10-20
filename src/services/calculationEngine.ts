@@ -7,13 +7,19 @@ export const TIMELINE_MIN_PERCENTAGE = 0.5; // 50% of optimal
 export const TIMELINE_MAX_PERCENTAGE = 2; // 200% of optimal
 
 export interface QuoteCalculation {
+  // Phase breakdown
+  designDays: number; // Total design phase days
+  developmentDays: number; // Total development phase days (MAX of frontend/backend per module)
+  totalDays: number; // Total timeline days (MAX of design and development per module, summed)
+
   // Cost breakdown
+  designCost: number; // Cost of design phase
+  developmentCost: number; // Cost of development phase
   totalQuote: number; // Total quote (before discount)
 
   // Legacy/Reference fields
   monthlyFee: number; // Total monthly fee for all performers (rate card)
   productPrice: number; // Same as totalQuote (backward compatibility)
-  totalDays: number; // Total timeline days
 
   // Discount
   discountAmount: number; // Amount discounted from total
@@ -39,8 +45,12 @@ export interface ModulePriceCalculation {
  * Calculate the total quote based on project modules and monthly rates
  * Calculations are based on working days from CSV data
  * Timeline assumes:
+ * - Design and development happen in parallel
  * - Frontend and backend work happens in parallel
- * - Module timeline = MAX(Frontend, Backend)
+ * - Module timeline = MAX(Design, Frontend, Backend)
+ * Cost calculation:
+ * - Design cost = sum of (design performer daily rates × design days)
+ * - Development cost = sum of (development performer daily rates × MAX(frontend, backend) days)
  */
 export function calculateQuote(
   rates: RateConfig[],
@@ -50,10 +60,16 @@ export function calculateQuote(
 ): QuoteCalculation {
   const enabledModules = modules.filter(m => m.isEnabled);
 
+  // Helper: Get daily rate for a performer
+  const getDailyRate = (performerName: string): number => {
+    const rate = rates.find(r => r.role === performerName);
+    return rate ? rate.monthlyRate / BUSINESS_DAYS_PER_MONTH : 0;
+  };
+
   // Calculate optimal timeline days
-  // Timeline = sum of MAX(Frontend, Backend) per module
+  // Timeline = sum of MAX(Design, Frontend, Backend) per module
   const optimalTimeline = enabledModules
-    .reduce((sum, m) => sum + Math.max(m.frontendDays, m.backendDays), 0);
+    .reduce((sum, m) => sum + Math.max(m.designDays, m.frontendDays, m.backendDays), 0);
 
   // Use custom timeline if provided, otherwise use optimal
   const actualTimeline = customTimeline || optimalTimeline;
@@ -70,7 +86,7 @@ export function calculateQuote(
 
     // Start from the beginning (top) and add modules until we run out of time
     for (const module of enabledModules) {
-      const moduleTime = Math.max(module.frontendDays, module.backendDays);
+      const moduleTime = Math.max(module.designDays, module.frontendDays, module.backendDays);
       if (remainingTime >= moduleTime) {
         modulesToInclude.push(module);
         remainingTime -= moduleTime;
@@ -83,14 +99,36 @@ export function calculateQuote(
 
   modulesInTimeline = modulesToInclude.map(m => m.id);
 
-  // Calculate total monthly fee for all performers
+  // Calculate design and development days for included modules
+  const totalDesignDays = modulesToInclude.reduce((sum, m) => sum + m.designDays, 0);
+  const totalDevelopmentDays = modulesToInclude.reduce((sum, m) => sum + Math.max(m.frontendDays, m.backendDays), 0);
+
+  // Calculate design cost
+  let designCost = 0;
+  for (const module of modulesToInclude) {
+    for (const performer of module.designPerformers) {
+      designCost += getDailyRate(performer) * module.designDays;
+    }
+  }
+
+  // Calculate development cost
+  let developmentCost = 0;
+  for (const module of modulesToInclude) {
+    const devDays = Math.max(module.frontendDays, module.backendDays);
+    for (const performer of module.developmentPerformers) {
+      developmentCost += getDailyRate(performer) * devDays;
+    }
+  }
+
+  // Round costs
+  designCost = Math.round(designCost);
+  developmentCost = Math.round(developmentCost);
+
+  // Total quote = design + development
+  const totalQuote = designCost + developmentCost;
+
+  // Calculate total monthly fee for all performers (rate card reference)
   const monthlyFee = rates.reduce((sum, rate) => sum + rate.monthlyRate, 0);
-
-  // Calculate daily rate
-  const dailyRate = monthlyFee / BUSINESS_DAYS_PER_MONTH;
-
-  // Total quote = daily rate * actual timeline
-  const totalQuote = Math.round(dailyRate * actualTimeline);
 
   // Product price represents the actual cost (same as totalQuote for consistency)
   const productPrice = totalQuote;
@@ -100,13 +138,19 @@ export function calculateQuote(
   const finalTotal = totalQuote - discountAmount;
 
   return {
+    // Phase breakdown
+    designDays: totalDesignDays,
+    developmentDays: totalDevelopmentDays,
+    totalDays: actualTimeline,
+
     // Cost breakdown
+    designCost,
+    developmentCost,
     totalQuote,
 
     // Legacy/Reference fields
     monthlyFee, // Keep for reference (rate card)
     productPrice, // Actual project cost (backward compatibility)
-    totalDays: actualTimeline,
 
     // Discount
     discountAmount,
@@ -124,13 +168,13 @@ export function calculateQuote(
 export function calculateModuleStats(modules: ProjectModule[]): ModuleStats {
   const enabledModules = modules.filter(m => m.isEnabled);
 
-  // Timeline: parallel work (max of frontend/backend per module, summed)
+  // Timeline: parallel work (max of design/frontend/backend per module, summed)
   const timelineDays = enabledModules
-    .reduce((sum, m) => sum + Math.max(m.frontendDays, m.backendDays), 0);
+    .reduce((sum, m) => sum + Math.max(m.designDays, m.frontendDays, m.backendDays), 0);
 
   // Effort: sum of all work
   const effortDays = enabledModules
-    .reduce((sum, m) => sum + m.frontendDays + m.backendDays, 0);
+    .reduce((sum, m) => sum + m.designDays + m.frontendDays + m.backendDays, 0);
 
   return {
     timelineDays,
@@ -145,9 +189,26 @@ export function calculateModulePrice(
   module: ProjectModule,
   rates: RateConfig[]
 ): number {
-  const monthlyFee = rates.reduce((sum, rate) => sum + rate.monthlyRate, 0);
-  const moduleTimeline = Math.max(module.frontendDays, module.backendDays);
-  return Math.round((monthlyFee / BUSINESS_DAYS_PER_MONTH) * moduleTimeline);
+  // Helper: Get daily rate for a performer
+  const getDailyRate = (performerName: string): number => {
+    const rate = rates.find(r => r.role === performerName);
+    return rate ? rate.monthlyRate / BUSINESS_DAYS_PER_MONTH : 0;
+  };
+
+  // Calculate design cost
+  let designCost = 0;
+  for (const performer of module.designPerformers) {
+    designCost += getDailyRate(performer) * module.designDays;
+  }
+
+  // Calculate development cost
+  const devDays = Math.max(module.frontendDays, module.backendDays);
+  let developmentCost = 0;
+  for (const performer of module.developmentPerformers) {
+    developmentCost += getDailyRate(performer) * devDays;
+  }
+
+  return Math.round(designCost + developmentCost);
 }
 
 /**
@@ -160,7 +221,7 @@ export function calculateModulePrices(
   return modules.map(module => ({
     moduleId: module.id,
     price: calculateModulePrice(module, rates),
-    timelineDays: Math.max(module.frontendDays, module.backendDays),
+    timelineDays: Math.max(module.designDays, module.frontendDays, module.backendDays),
   }));
 }
 
@@ -174,6 +235,10 @@ export function calculateQuoteForDuration(
   const monthlyCalculation = calculateQuote(rates);
 
   return {
+    designDays: monthlyCalculation.designDays * months,
+    developmentDays: monthlyCalculation.developmentDays * months,
+    designCost: monthlyCalculation.designCost * months,
+    developmentCost: monthlyCalculation.developmentCost * months,
     totalQuote: monthlyCalculation.totalQuote * months,
     monthlyFee: monthlyCalculation.monthlyFee * months,
     productPrice: monthlyCalculation.productPrice * months,
