@@ -222,15 +222,26 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
             )}
           </div>
 
-          {/* Total Timeline */}
-          <div className="pt-3 mt-3 border-t border-white/20">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-white/90 text-sm">Total Project Timeline</span>
-              <span className="text-white font-bold text-lg">{totalDays} days</span>
+          {/* Total Timeline and Monthly Rate */}
+          <div className="pt-3 mt-3 border-t border-white/20 grid grid-cols-2 gap-4">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-white/90 text-sm">Total Project Timeline</span>
+                <span className="text-white font-bold text-lg">{totalDays} days</span>
+              </div>
+              <p className="text-white/60 text-xs">
+                {designDays + developmentDays} total effort days completed in {totalDays} calendar days due to parallel work
+              </p>
             </div>
-            <p className="text-white/60 text-xs">
-              {designDays + developmentDays} total effort days completed in {totalDays} calendar days due to parallel work
-            </p>
+            <div className="border-l border-white/20 pl-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-white/90 text-sm">Monthly Rate Card</span>
+                <span className="text-white font-bold text-lg">${monthlyFee.toLocaleString()}</span>
+              </div>
+              <p className="text-white/60 text-xs">
+                Total monthly fee for all performers
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -262,17 +273,6 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
             <p className="text-sm text-white/80">{developmentDays} days</p>
           </div>
         )}
-
-        {/* Monthly Fee */}
-        <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5">
-          <div className="flex justify-between items-center mb-1">
-            <h3 className="text-lg font-semibold text-white">Monthly Rate Card</h3>
-            <span className="text-2xl font-bold text-white">
-              ${monthlyFee.toLocaleString()}
-            </span>
-          </div>
-          <p className="text-sm text-white/80">Total monthly fee for all performers</p>
-        </div>
       </div>
 
       {/* Export Actions */}

@@ -131,7 +131,8 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInT
           return (
             <div
               key={module.id}
-              className={`rounded-lg p-4 transition-all duration-300 hover:shadow-md ${
+              onClick={() => onToggle(module.id)}
+              className={`rounded-lg p-4 transition-all duration-300 hover:shadow-md cursor-pointer ${
                 isExcluded
                   ? 'bg-red-50 border-2 border-red-300 opacity-100'
                   : isEnabled
@@ -144,8 +145,9 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInT
                 <input
                   type="checkbox"
                   checked={module.isEnabled}
-                  onChange={() => onToggle(module.id)}
-                  className="mt-1 w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2"
+                  onChange={() => {}} // Handled by parent div onClick
+                  onClick={(e) => e.stopPropagation()} // Prevent double-toggle
+                  className="mt-1 w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2 pointer-events-none"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
