@@ -39,10 +39,10 @@ export default function CollapsibleSection({
 
       <div
         className={`transition-all duration-300 ease-in-out ${
-          isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
+          isExpanded ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
         } overflow-hidden`}
       >
-        <div className="p-4">{children}</div>
+        <div className="p-4 max-h-[600px] overflow-y-auto">{children}</div>
       </div>
     </div>
   );
