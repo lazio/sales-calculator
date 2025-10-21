@@ -1,0 +1,6 @@
+Module,Design (days),Front-end (days),Back-end (days),Design Performers,Development Performers
+Valid Module 1,5,8,10,UI Designer,"Frontend Developer, Backend Developer"
+Invalid Module,-3,15,12,UI Designer,"Frontend Developer, Backend Developer"
+Valid Module 2,3,6,5,UI Designer,Frontend Developer
+Invalid Module 3,four,10,8,UX Designer,Backend Developer
+Valid Module 3,4,7,6,UI Designer,"Frontend Developer, Backend Developer"

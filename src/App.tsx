@@ -32,6 +32,9 @@ function App() {
   // Discount percentage (0-100)
   const [discount, setDiscount] = useState<number>(0);
 
+  // Discount section visibility
+  const [showDiscount, setShowDiscount] = useState<boolean>(false);
+
   // Calculate max overlap based on enabled modules
   const maxOverlapDays = useMemo(() => {
     const enabledModules = modules.filter(m => m.isEnabled);
@@ -104,6 +107,10 @@ function App() {
     setWorkOverlap(days);
   };
 
+  const handlePriceClick = () => {
+    setShowDiscount(true);
+  };
+
   return (
     <AppLayout
       leftPanel={
@@ -152,9 +159,11 @@ function App() {
             </CollapsibleSection>
 
             {/* Discount */}
-            <CollapsibleSection title="Discount" defaultExpanded={true}>
-              <DiscountInput discount={discount} onDiscountChange={handleDiscountChange} />
-            </CollapsibleSection>
+            {showDiscount && (
+              <CollapsibleSection title="Discount" defaultExpanded={true}>
+                <DiscountInput discount={discount} onDiscountChange={handleDiscountChange} />
+              </CollapsibleSection>
+            )}
           </div>
         </LeftPanel>
       }
@@ -174,6 +183,7 @@ function App() {
             finalTotal={quote.finalTotal}
             modules={modules}
             overlapDays={workOverlap}
+            onPriceClick={handlePriceClick}
           />
         </RightPanel>
       }

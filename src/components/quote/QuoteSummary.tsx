@@ -15,6 +15,7 @@ interface QuoteSummaryProps {
   finalTotal?: number;
   modules?: ProjectModule[];
   overlapDays?: number;
+  onPriceClick?: () => void;
 }
 
 export default function QuoteSummary({
@@ -28,7 +29,8 @@ export default function QuoteSummary({
   discountAmount = 0,
   finalTotal,
   modules = [],
-  overlapDays = Infinity
+  overlapDays = Infinity,
+  onPriceClick
 }: QuoteSummaryProps) {
   const displayTotal = finalTotal !== undefined ? finalTotal : totalQuote;
   const [copied, setCopied] = useState(false);
@@ -162,7 +164,11 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
         <h2 className="text-2xl font-bold text-white mb-2">
           {discountAmount > 0 ? 'Final Total' : 'Total Quote'}
         </h2>
-        <div className="text-6xl font-bold text-white mb-2">
+        <div
+          className={`text-6xl font-bold text-white mb-2 ${onPriceClick ? 'cursor-pointer hover:text-white/90 transition-colors' : ''}`}
+          onClick={onPriceClick}
+          title={onPriceClick && discountAmount === 0 ? 'Click to add discount' : undefined}
+        >
           ${displayTotal.toLocaleString()}
         </div>
         {discountAmount > 0 && (

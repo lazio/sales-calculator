@@ -1,0 +1,5 @@
+Module,Design (days),Front-end (days),Back-end (days),Design Performers,Development Performers
+API Integration,0,15,20,,"Backend Developer, DevOps Engineer"
+Database Migration,0,0,30,,Backend Developer
+Code Refactoring,0,10,15,,"Frontend Developer, Backend Developer"
+Performance Optimization,0,8,12,,"Frontend Developer, Backend Developer"

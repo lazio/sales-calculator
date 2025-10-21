@@ -1,0 +1,7 @@
+Module,Design (days),Front-end (days),Back-end (days),Design Performers,Development Performers
+Authentication,5,8,10,"UI Designer, UX Designer","Frontend Developer, Backend Developer"
+Dashboard,7,15,12,UI Designer,"Frontend Developer, Backend Developer, QA Engineer"
+User Profile,3,6,5,UI Designer,"Frontend Developer, Backend Developer"
+Reports,4,10,8,"UI Designer, Data Analyst",Backend Developer
+Settings,2,4,3,UX Designer,Frontend Developer
+Notifications,3,7,6,UI Designer,"Frontend Developer, Backend Developer"
