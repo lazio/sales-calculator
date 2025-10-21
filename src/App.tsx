@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import LeftPanel from '@/components/layout/LeftPanel';
 import RightPanel from '@/components/layout/RightPanel';
@@ -7,6 +7,7 @@ import RateConfiguration from '@/components/rates/RateConfiguration';
 import CSVImporter from '@/components/csv/CSVImporter';
 import ModuleList from '@/components/features/ModuleList';
 import TimelineSlider from '@/components/timeline/TimelineSlider';
+import WorkOverlapSlider from '@/components/overlap/WorkOverlapSlider';
 import DiscountInput from '@/components/discount/DiscountInput';
 import CollapsibleSection from '@/components/common/CollapsibleSection';
 import { DEFAULT_RATES, RateConfig, STORAGE_KEY } from '@/types/rates.types';
@@ -25,15 +26,32 @@ function App() {
   // Timeline adjustment (null means use optimal timeline)
   const [customTimeline, setCustomTimeline] = useState<number | null>(null);
 
+  // Work overlap (in days) - default: 1 month (20 business days) after design starts
+  const [workOverlap, setWorkOverlap] = useState<number>(20);
+
   // Discount percentage (0-100)
   const [discount, setDiscount] = useState<number>(0);
+
+  // Calculate max overlap based on enabled modules
+  const maxOverlapDays = useMemo(() => {
+    const enabledModules = modules.filter(m => m.isEnabled);
+    if (enabledModules.length === 0) return 0;
+
+    const totalDesign = enabledModules.reduce((sum, m) => sum + m.designDays, 0);
+    const totalFrontend = enabledModules.reduce((sum, m) => sum + m.frontendDays, 0);
+    const totalBackend = enabledModules.reduce((sum, m) => sum + m.backendDays, 0);
+    const totalDev = Math.max(totalFrontend, totalBackend);
+
+    return Math.min(totalDesign, totalDev);
+  }, [modules]);
 
   // Use custom hook for quote calculations
   const { quote, timelineConstraints } = useQuoteCalculation(
     rates,
     modules,
     customTimeline,
-    discount
+    discount,
+    workOverlap
   );
 
   const handleRateChange = (index: number, newRate: number) => {
@@ -82,6 +100,10 @@ function App() {
     setDiscount(discountPercentage);
   };
 
+  const handleOverlapChange = (days: number) => {
+    setWorkOverlap(days);
+  };
+
   return (
     <AppLayout
       leftPanel={
@@ -106,19 +128,27 @@ function App() {
                   onBulkToggle={handleBulkToggle}
                   modulesInTimeline={quote.modulesInTimeline}
                   rates={rates}
+                  overlapDays={workOverlap}
                 />
               </CollapsibleSection>
             )}
 
             {/* Timeline Adjustment */}
             <CollapsibleSection title="Timeline Adjustment" defaultExpanded={true}>
-              <TimelineSlider
-                minDays={timelineConstraints.min}
-                maxDays={timelineConstraints.max}
-                currentDays={timelineConstraints.current}
-                optimalDays={timelineConstraints.optimal}
-                onTimelineChange={handleTimelineChange}
-              />
+              <div className="space-y-4">
+                <WorkOverlapSlider
+                  overlapDays={workOverlap}
+                  maxOverlapDays={maxOverlapDays}
+                  onOverlapChange={handleOverlapChange}
+                />
+                <TimelineSlider
+                  minDays={timelineConstraints.min}
+                  maxDays={timelineConstraints.max}
+                  currentDays={timelineConstraints.current}
+                  optimalDays={timelineConstraints.optimal}
+                  onTimelineChange={handleTimelineChange}
+                />
+              </div>
             </CollapsibleSection>
 
             {/* Discount */}
@@ -143,6 +173,7 @@ function App() {
             discountAmount={quote.discountAmount}
             finalTotal={quote.finalTotal}
             modules={modules}
+            overlapDays={workOverlap}
           />
         </RightPanel>
       }

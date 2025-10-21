@@ -44,10 +44,13 @@ export interface ModulePriceCalculation {
 /**
  * Calculate the total quote based on project modules and monthly rates
  * Calculations are based on working days from CSV data
- * Timeline assumes:
+ * Timeline calculation with overlap:
  * - All modules work in parallel (simultaneously)
- * - Design, frontend, and backend work happens in parallel
- * - Project timeline = MAX(total design days, total frontend days, total backend days)
+ * - Design and development can overlap based on overlapDays parameter
+ * - overlapDays = 0: Sequential (Design → Development)
+ * - overlapDays > 0: Development starts after N days of design
+ * - overlapDays >= designDays: Fully parallel (current behavior)
+ * - Project timeline = designDays + MAX(frontendDays, backendDays) - overlapDays
  * Cost calculation:
  * - Design cost = sum of (design performer daily rates × design days)
  * - Development cost = sum of (development performer daily rates × MAX(frontend, backend) days per module)
@@ -56,7 +59,8 @@ export function calculateQuote(
   rates: RateConfig[],
   modules: ProjectModule[] = [],
   customTimeline?: number,
-  discountPercentage: number = 0
+  discountPercentage: number = 0,
+  overlapDays: number = Infinity // Default: fully parallel (backward compatible)
 ): QuoteCalculation {
   const enabledModules = modules.filter(m => m.isEnabled);
 
@@ -66,12 +70,19 @@ export function calculateQuote(
     return rate ? rate.monthlyRate / BUSINESS_DAYS_PER_MONTH : 0;
   };
 
-  // Calculate optimal timeline days
-  // All modules work in parallel, so timeline = MAX(total design, total frontend, total backend)
+  // Calculate optimal timeline days with overlap
+  // All modules work in parallel, design and dev overlap based on overlapDays
   const totalDesignDaysAll = enabledModules.reduce((sum, m) => sum + m.designDays, 0);
   const totalFrontendDays = enabledModules.reduce((sum, m) => sum + m.frontendDays, 0);
   const totalBackendDays = enabledModules.reduce((sum, m) => sum + m.backendDays, 0);
-  const optimalTimeline = Math.max(totalDesignDaysAll, totalFrontendDays, totalBackendDays);
+  const totalDevDays = Math.max(totalFrontendDays, totalBackendDays);
+
+  // Calculate actual overlap (can't overlap more than design days or dev days)
+  const actualOverlap = Math.min(overlapDays, totalDesignDaysAll, totalDevDays);
+
+  // Timeline = design days + dev days - overlap
+  // If overlap >= both phases, they're fully parallel = MAX(design, dev)
+  const optimalTimeline = totalDesignDaysAll + totalDevDays - actualOverlap;
 
   // Use custom timeline if provided, otherwise use optimal
   const actualTimeline = customTimeline || optimalTimeline;
@@ -83,7 +94,7 @@ export function calculateQuote(
 
   if (customTimeline && customTimeline < optimalTimeline) {
     // Compressed timeline: remove modules from bottom until we fit
-    // We need to find a subset where MAX(sum design, sum frontend, sum backend) <= customTimeline
+    // We need to find a subset where (design + dev - overlap) <= customTimeline
     modulesToInclude = [];
 
     for (const module of enabledModules) {
@@ -91,7 +102,9 @@ export function calculateQuote(
       const testDesign = testModules.reduce((sum, m) => sum + m.designDays, 0);
       const testFrontend = testModules.reduce((sum, m) => sum + m.frontendDays, 0);
       const testBackend = testModules.reduce((sum, m) => sum + m.backendDays, 0);
-      const testTimeline = Math.max(testDesign, testFrontend, testBackend);
+      const testDevDays = Math.max(testFrontend, testBackend);
+      const testOverlap = Math.min(actualOverlap, testDesign, testDevDays);
+      const testTimeline = testDesign + testDevDays - testOverlap;
 
       if (testTimeline <= customTimeline) {
         modulesToInclude.push(module);
@@ -170,14 +183,20 @@ export function calculateQuote(
 /**
  * Calculate statistics for enabled modules (timeline and effort)
  */
-export function calculateModuleStats(modules: ProjectModule[]): ModuleStats {
+export function calculateModuleStats(modules: ProjectModule[], overlapDays: number = Infinity): ModuleStats {
   const enabledModules = modules.filter(m => m.isEnabled);
 
-  // Timeline: all modules work in parallel, so MAX(total design, total frontend, total backend)
+  // Timeline: all modules work in parallel, design and dev overlap based on overlapDays
   const totalDesign = enabledModules.reduce((sum, m) => sum + m.designDays, 0);
   const totalFrontend = enabledModules.reduce((sum, m) => sum + m.frontendDays, 0);
   const totalBackend = enabledModules.reduce((sum, m) => sum + m.backendDays, 0);
-  const timelineDays = Math.max(totalDesign, totalFrontend, totalBackend);
+  const totalDevDays = Math.max(totalFrontend, totalBackend);
+
+  // Calculate actual overlap
+  const actualOverlap = Math.min(overlapDays, totalDesign, totalDevDays);
+
+  // Timeline with overlap
+  const timelineDays = totalDesign + totalDevDays - actualOverlap;
 
   // Effort: sum of all work
   const effortDays = enabledModules

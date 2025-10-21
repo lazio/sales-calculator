@@ -14,6 +14,7 @@ interface QuoteSummaryProps {
   discountAmount?: number;
   finalTotal?: number;
   modules?: ProjectModule[];
+  overlapDays?: number;
 }
 
 export default function QuoteSummary({
@@ -26,7 +27,8 @@ export default function QuoteSummary({
   developmentCost = 0,
   discountAmount = 0,
   finalTotal,
-  modules = []
+  modules = [],
+  overlapDays = Infinity
 }: QuoteSummaryProps) {
   const displayTotal = finalTotal !== undefined ? finalTotal : totalQuote;
   const [copied, setCopied] = useState(false);
@@ -35,6 +37,18 @@ export default function QuoteSummary({
 
   const enabledModules = modules.filter(m => m.isEnabled);
   const disabledModules = modules.filter(m => !m.isEnabled);
+
+  // Calculate max possible overlap
+  const totalDesign = enabledModules.reduce((sum, m) => sum + m.designDays, 0);
+  const totalFrontend = enabledModules.reduce((sum, m) => sum + m.frontendDays, 0);
+  const totalBackend = enabledModules.reduce((sum, m) => sum + m.backendDays, 0);
+  const totalDev = Math.max(totalFrontend, totalBackend);
+  const maxOverlap = Math.min(totalDesign, totalDev);
+
+  // Determine overlap status
+  const isFullyParallel = overlapDays >= maxOverlap;
+  const isSequential = overlapDays === 0;
+  const overlapWeeks = Math.floor(overlapDays / 5);
 
   const handleCopyToClipboard = async () => {
     const text = `
@@ -191,9 +205,13 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
                 />
               </svg>
               <span className="group relative cursor-help">
-                All work in parallel
+                {isFullyParallel ? 'Fully parallel work' : isSequential ? 'Sequential work' : `${overlapWeeks}w overlap`}
                 <span className="invisible group-hover:visible absolute left-0 top-6 w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10">
-                  All modules work in parallel. Design, frontend, and backend happen simultaneously across all modules.
+                  {isFullyParallel
+                    ? 'All modules work in parallel. Design and development happen simultaneously across all modules.'
+                    : isSequential
+                    ? 'Work is sequential. Development starts after design completes.'
+                    : `Development starts ${overlapWeeks} week${overlapWeeks !== 1 ? 's' : ''} after design begins. All modules work in parallel.`}
                 </span>
               </span>
             </div>

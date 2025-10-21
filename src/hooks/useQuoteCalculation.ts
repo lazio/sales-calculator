@@ -28,12 +28,13 @@ export function useQuoteCalculation(
   rates: RateConfig[],
   modules: ProjectModule[],
   customTimeline: number | null,
-  discount: number
+  discount: number,
+  overlapDays: number = Infinity
 ): QuoteCalculationResult {
   // Calculate optimal timeline (without custom timeline adjustment or discount)
   const optimalQuote = useMemo(
-    () => calculateQuote(rates, modules),
-    [rates, modules]
+    () => calculateQuote(rates, modules, undefined, 0, overlapDays),
+    [rates, modules, overlapDays]
   );
 
   // Calculate timeline constraints
@@ -62,8 +63,8 @@ export function useQuoteCalculation(
 
   // Calculate final quote with custom timeline and discount
   const quote = useMemo(
-    () => calculateQuote(rates, modules, customTimeline || undefined, discount),
-    [rates, modules, customTimeline, discount]
+    () => calculateQuote(rates, modules, customTimeline || undefined, discount, overlapDays),
+    [rates, modules, customTimeline, discount, overlapDays]
   );
 
   return {

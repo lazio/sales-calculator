@@ -9,11 +9,12 @@ interface ModuleListProps {
   onBulkToggle?: (enabled: boolean) => void;
   modulesInTimeline?: string[]; // IDs of modules that fit in the timeline
   rates: RateConfig[];
+  overlapDays?: number;
 }
 
 type SortOption = 'name' | 'price' | 'timeline';
 
-export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInTimeline, rates }: ModuleListProps) {
+export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInTimeline, rates, overlapDays = Infinity }: ModuleListProps) {
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [sortDesc, setSortDesc] = useState(false);
 
@@ -22,7 +23,7 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInT
   }
 
   // Calculate statistics using centralized business logic
-  const { timelineDays, effortDays } = calculateModuleStats(modules);
+  const { timelineDays, effortDays } = calculateModuleStats(modules, overlapDays);
 
   // Calculate total cost for percentage display
   const totalCost = useMemo(() => {
