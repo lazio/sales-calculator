@@ -69,8 +69,11 @@ export default function RateConfiguration({ rates, onRateChange, onRateDelete, c
                     type="number"
                     min="0"
                     step="100"
-                    value={rate.monthlyRate}
-                    onChange={(e) => onRateChange(index, Number(e.target.value))}
+                    value={rate.monthlyRate || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      onRateChange(index, value === '' ? 0 : Number(value));
+                    }}
                     className="w-full pl-8 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-150 outline-none font-semibold text-gray-900"
                     placeholder="8000"
                   />

@@ -14,7 +14,7 @@ import { DEFAULT_RATES, RateConfig, STORAGE_KEY } from '@/types/rates.types';
 import { ProjectModule } from '@/types/project.types';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useQuoteCalculation } from '@/hooks/useQuoteCalculation';
-import { getMissingPerformers } from '@/utils/performers';
+import { getMissingPerformers, extractUniquePerformers } from '@/utils/performers';
 
 function App() {
   // Use custom hook for localStorage management
@@ -37,6 +37,16 @@ function App() {
 
   // Currency symbol ($ for USD, € for EUR)
   const [currency, setCurrency] = useState<'$' | '€'>('$');
+
+  // Filter rates to only show performers from the current CSV modules
+  const visibleRates = useMemo(() => {
+    if (modules.length === 0) {
+      return [];
+    }
+    const performersInModules = extractUniquePerformers(modules);
+    const performersSet = new Set(performersInModules);
+    return rates.filter(rate => performersSet.has(rate.role));
+  }, [modules, rates]);
 
   // Calculate max overlap based on enabled modules
   const maxOverlapDays = useMemo(() => {
@@ -61,13 +71,26 @@ function App() {
   );
 
   const handleRateChange = (index: number, newRate: number) => {
-    const updatedRates = [...rates];
-    updatedRates[index] = { ...updatedRates[index], monthlyRate: newRate };
+    // Get the role from visibleRates using the index
+    const roleToUpdate = visibleRates[index]?.role;
+    if (!roleToUpdate) return;
+
+    // Find and update the rate in the full rates array
+    const updatedRates = rates.map(rate =>
+      rate.role === roleToUpdate
+        ? { ...rate, monthlyRate: newRate }
+        : rate
+    );
     setRates(updatedRates);
   };
 
   const handleRateDelete = (index: number) => {
-    const updatedRates = rates.filter((_, i) => i !== index);
+    // Get the role from visibleRates using the index
+    const roleToDelete = visibleRates[index]?.role;
+    if (!roleToDelete) return;
+
+    // Remove the rate from the full rates array
+    const updatedRates = rates.filter(rate => rate.role !== roleToDelete);
     setRates(updatedRates);
   };
 
@@ -130,7 +153,7 @@ function App() {
 
             {/* Rate Configuration */}
             <CollapsibleSection title="Monthly Rates" defaultExpanded={true}>
-              <RateConfiguration rates={rates} onRateChange={handleRateChange} onRateDelete={handleRateDelete} currency={currency} />
+              <RateConfiguration rates={visibleRates} onRateChange={handleRateChange} onRateDelete={handleRateDelete} currency={currency} />
             </CollapsibleSection>
 
             {/* Feature Toggles */}
