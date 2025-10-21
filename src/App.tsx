@@ -131,6 +131,7 @@ function App() {
 
   const handleOverlapChange = (days: number) => {
     setWorkOverlap(days);
+    setCustomTimeline(null); // Reset timeline when overlap changes so it recalculates
   };
 
   const handlePriceClick = () => {

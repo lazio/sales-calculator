@@ -1,13 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ProjectModule } from '@/types/project.types';
-import { RateConfig } from '@/types/rates.types';
 
 describe('ModuleList Performer Display Logic', () => {
-  const mockRates: RateConfig[] = [
-    { role: 'UI Designer', monthlyRate: 5000 },
-    { role: 'Frontend Developer', monthlyRate: 6000 },
-    { role: 'Backend Developer', monthlyRate: 6000 },
-  ];
 
   describe('Design-only modules', () => {
     it('should identify design-only module correctly', () => {
