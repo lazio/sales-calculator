@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { RateConfig } from '@/types/rates.types';
 
 interface RateConfigurationProps {
@@ -7,6 +8,18 @@ interface RateConfigurationProps {
 }
 
 export default function RateConfiguration({ rates, onRateChange, onRateDelete }: RateConfigurationProps) {
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+
+  const handleDelete = (index: number) => {
+    if (deleteConfirm === index) {
+      onRateDelete?.(index);
+      setDeleteConfirm(null);
+    } else {
+      setDeleteConfirm(index);
+      // Auto-cancel after 3 seconds
+      setTimeout(() => setDeleteConfirm(null), 3000);
+    }
+  };
   return (
     <div className="space-y-4">
       <div className="mb-4">
@@ -64,13 +77,21 @@ export default function RateConfiguration({ rates, onRateChange, onRateDelete }:
               </label>
               {onRateDelete && (
                 <button
-                  onClick={() => onRateDelete(index)}
-                  className="mt-8 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
-                  title="Remove rate"
+                  onClick={() => handleDelete(index)}
+                  className={`mt-8 p-2 rounded-lg transition-all duration-150 ${
+                    deleteConfirm === index
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : 'text-red-600 hover:bg-red-50'
+                  }`}
+                  title={deleteConfirm === index ? 'Click again to confirm' : 'Remove rate'}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
+                  {deleteConfirm === index ? (
+                    <span className="text-xs font-medium px-1">Confirm?</span>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  )}
                 </button>
               )}
             </div>

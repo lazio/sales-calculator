@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { ProjectModule } from '@/types/project.types';
+
 interface QuoteSummaryProps {
   totalQuote: number;
   monthlyFee: number;
@@ -10,6 +13,7 @@ interface QuoteSummaryProps {
   teamSizeMultiplier?: number;
   discountAmount?: number;
   finalTotal?: number;
+  modules?: ProjectModule[];
 }
 
 export default function QuoteSummary({
@@ -21,9 +25,122 @@ export default function QuoteSummary({
   designCost = 0,
   developmentCost = 0,
   discountAmount = 0,
-  finalTotal
+  finalTotal,
+  modules = []
 }: QuoteSummaryProps) {
   const displayTotal = finalTotal !== undefined ? finalTotal : totalQuote;
+  const [copied, setCopied] = useState(false);
+  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const enabledModules = modules.filter(m => m.isEnabled);
+  const disabledModules = modules.filter(m => !m.isEnabled);
+
+  const handleCopyToClipboard = async () => {
+    const text = `
+PROJECT QUOTE SUMMARY
+=====================
+
+Total: $${displayTotal.toLocaleString()}
+${discountAmount > 0 ? `Original: $${totalQuote.toLocaleString()}\nDiscount: -$${discountAmount.toLocaleString()}\n` : ''}
+Timeline: ${totalDays} working days
+
+WORK BREAKDOWN
+--------------
+Design Effort: ${designDays} days ($${designCost.toLocaleString()})
+Development Effort: ${developmentDays} days ($${developmentCost.toLocaleString()})
+Total Effort: ${designDays + developmentDays} days completed in ${totalDays} calendar days
+
+TEAM RATES
+----------
+Monthly Rate Card: $${monthlyFee.toLocaleString()}
+
+Generated with Project Quote Calculator
+    `.trim();
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleCopyMarkdownSimple = async () => {
+    const markdown = `# Project Quote
+
+## Timeline
+- **Total Timeline:** ${totalDays} working days
+- **Design Effort:** ${designDays} days
+- **Development Effort:** ${developmentDays} days
+
+## Modules
+
+| Module | Design | Frontend | Backend | Timeline | Status |
+|--------|--------|----------|---------|----------|--------|
+${enabledModules.map(m =>
+  `| ${m.name} | ${m.designDays}d | ${m.frontendDays}d | ${m.backendDays}d | ${Math.max(m.designDays, m.frontendDays, m.backendDays)}d | ✓ |`
+).join('\n')}
+${disabledModules.length > 0 ? disabledModules.map(m =>
+  `| ~~${m.name}~~ | ${m.designDays}d | ${m.frontendDays}d | ${m.backendDays}d | ${Math.max(m.designDays, m.frontendDays, m.backendDays)}d | ✗ |`
+).join('\n') : ''}
+
+---
+*Generated with Project Quote Calculator*
+`;
+
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setCopiedMarkdown(true);
+      setShowExportMenu(false);
+      setTimeout(() => setCopiedMarkdown(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy markdown:', err);
+    }
+  };
+
+  const handleCopyMarkdownFull = async () => {
+    const markdown = `# Project Quote Summary
+
+## Budget Overview
+- **Total Quote:** $${displayTotal.toLocaleString()}
+${discountAmount > 0 ? `- **Original Price:** $${totalQuote.toLocaleString()}\n- **Discount:** -$${discountAmount.toLocaleString()}\n` : ''}
+- **Timeline:** ${totalDays} working days
+
+## Work Breakdown
+- **Design Phase:** ${designDays} days - $${designCost.toLocaleString()}
+- **Development Phase:** ${developmentDays} days - $${developmentCost.toLocaleString()}
+- **Total Effort:** ${designDays + developmentDays} days completed in ${totalDays} calendar days
+
+## Team Rates
+- **Monthly Rate Card:** $${monthlyFee.toLocaleString()}
+
+## Module Details
+
+| Module | Design | Frontend | Backend | Timeline | Design Team | Development Team | Status |
+|--------|--------|----------|---------|----------|-------------|------------------|--------|
+${enabledModules.map(m =>
+  `| ${m.name} | ${m.designDays}d | ${m.frontendDays}d | ${m.backendDays}d | ${Math.max(m.designDays, m.frontendDays, m.backendDays)}d | ${m.designPerformers.join(', ') || 'N/A'} | ${m.developmentPerformers.join(', ') || 'N/A'} | ✓ |`
+).join('\n')}
+${disabledModules.length > 0 ? disabledModules.map(m =>
+  `| ~~${m.name}~~ | ${m.designDays}d | ${m.frontendDays}d | ${m.backendDays}d | ${Math.max(m.designDays, m.frontendDays, m.backendDays)}d | ${m.designPerformers.join(', ') || 'N/A'} | ${m.developmentPerformers.join(', ') || 'N/A'} | ✗ |`
+).join('\n') : ''}
+
+---
+*Generated with Project Quote Calculator*
+`;
+
+    try {
+      await navigator.clipboard.writeText(markdown);
+      setCopiedMarkdown(true);
+      setShowExportMenu(false);
+      setTimeout(() => setCopiedMarkdown(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy markdown:', err);
+    }
+  };
+
   return (
     <div className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl shadow-xl p-8 animate-fade-in">
       {/* Total Quote Section */}
@@ -156,6 +273,79 @@ export default function QuoteSummary({
           </div>
           <p className="text-sm text-white/80">Total monthly fee for all performers</p>
         </div>
+      </div>
+
+      {/* Export Actions */}
+      <div className="space-y-3">
+        {/* Copy to Clipboard */}
+        <button
+          onClick={handleCopyToClipboard}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white text-primary-600 font-semibold rounded-lg hover:bg-white/90 transition-all duration-150"
+        >
+          {copied ? (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Copied!
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+              </svg>
+              Copy Summary
+            </>
+          )}
+        </button>
+
+        {/* Copy Markdown Dropdown */}
+        {modules.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/20 text-white font-semibold rounded-lg hover:bg-white/30 transition-all duration-150 backdrop-blur-sm"
+            >
+              {copiedMarkdown ? (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Copy Markdown
+                  <svg className={`w-4 h-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </>
+              )}
+            </button>
+
+            {showExportMenu && !copiedMarkdown && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-lg shadow-lg overflow-hidden z-10 animate-fade-in">
+                <button
+                  onClick={handleCopyMarkdownSimple}
+                  className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100"
+                >
+                  <div className="font-semibold text-gray-800">Simple (No Prices)</div>
+                  <div className="text-xs text-gray-600">Modules & timelines only</div>
+                </button>
+                <button
+                  onClick={handleCopyMarkdownFull}
+                  className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                >
+                  <div className="font-semibold text-gray-800">Full Details</div>
+                  <div className="text-xs text-gray-600">Modules, timelines, prices & budgets</div>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

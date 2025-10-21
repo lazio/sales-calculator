@@ -142,6 +142,7 @@ function App() {
             teamSizeMultiplier={quote.teamSizeMultiplier}
             discountAmount={quote.discountAmount}
             finalTotal={quote.finalTotal}
+            modules={modules}
           />
         </RightPanel>
       }
