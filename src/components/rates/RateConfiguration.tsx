@@ -5,9 +5,10 @@ interface RateConfigurationProps {
   rates: RateConfig[];
   onRateChange: (index: number, newRate: number) => void;
   onRateDelete?: (index: number) => void;
+  currency?: '$' | '€';
 }
 
-export default function RateConfiguration({ rates, onRateChange, onRateDelete }: RateConfigurationProps) {
+export default function RateConfiguration({ rates, onRateChange, onRateDelete, currency = '$' }: RateConfigurationProps) {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
   const handleDelete = (index: number) => {
@@ -58,11 +59,11 @@ export default function RateConfiguration({ rates, onRateChange, onRateDelete }:
               <label className="block flex-1">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-gray-700">{rate.role}</span>
-                  <span className="text-sm text-gray-500">$/month</span>
+                  <span className="text-sm text-gray-500">{currency}/month</span>
                 </div>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 font-semibold">
-                    $
+                    {currency}
                   </span>
                   <input
                     type="number"

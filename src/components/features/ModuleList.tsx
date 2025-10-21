@@ -10,12 +10,13 @@ interface ModuleListProps {
   modulesInTimeline?: string[]; // IDs of modules that fit in the timeline
   rates: RateConfig[];
   overlapDays?: number;
+  currency?: '$' | '€';
 }
 
-type SortOption = 'name' | 'price' | 'timeline';
+type SortOption = 'default' | 'name' | 'price' | 'timeline';
 
-export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInTimeline, rates, overlapDays = Infinity }: ModuleListProps) {
-  const [sortBy, setSortBy] = useState<SortOption>('name');
+export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInTimeline, rates, overlapDays = Infinity, currency = '$' }: ModuleListProps) {
+  const [sortBy, setSortBy] = useState<SortOption>('default');
   const [sortDesc, setSortDesc] = useState(false);
 
   if (modules.length === 0) {
@@ -34,6 +35,11 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInT
 
   // Sort modules
   const sortedModules = useMemo(() => {
+    // If default sort, maintain original CSV order
+    if (sortBy === 'default') {
+      return modules;
+    }
+
     const sorted = [...modules];
     sorted.sort((a, b) => {
       let comparison = 0;
@@ -56,7 +62,10 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInT
 
   const handleSort = (option: SortOption) => {
     if (sortBy === option) {
-      setSortDesc(!sortDesc);
+      // Toggle sort direction, except for 'default' which doesn't have direction
+      if (option !== 'default') {
+        setSortDesc(!sortDesc);
+      }
     } else {
       setSortBy(option);
       setSortDesc(false);
@@ -94,6 +103,14 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInT
         {/* Sort Controls */}
         <div className="flex items-center gap-2 text-sm">
           <span className="text-gray-600">Sort by:</span>
+          <button
+            onClick={() => handleSort('default')}
+            className={`px-2 py-1 rounded transition-colors ${
+              sortBy === 'default' ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            CSV Order
+          </button>
           <button
             onClick={() => handleSort('name')}
             className={`px-2 py-1 rounded transition-colors ${
@@ -159,7 +176,7 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInT
                       </span>
                     )}
                     <span className="px-2 py-0.5 text-sm font-semibold bg-green-100 text-green-800 rounded ml-auto">
-                      ${modulePrice.toLocaleString()}
+                      {currency}{modulePrice.toLocaleString()}
                       {isEnabled && totalCost > 0 && (
                         <span className="text-xs text-green-600 ml-1">({costPercentage}%)</span>
                       )}
@@ -173,9 +190,11 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInT
                       Timeline: {Math.max(module.designDays, module.frontendDays, module.backendDays)}d
                     </span>
                   </div>
-                  {(module.designPerformers.length > 0 || module.developmentPerformers.length > 0) && (
+                  {/* Show performers only if there's actual work in that phase */}
+                  {((module.designDays > 0 && module.designPerformers.length > 0) ||
+                    ((module.frontendDays > 0 || module.backendDays > 0) && module.developmentPerformers.length > 0)) && (
                     <div className="mt-2 space-y-1">
-                      {module.designPerformers.length > 0 && (
+                      {module.designDays > 0 && module.designPerformers.length > 0 && (
                         <div className="flex items-start gap-1">
                           <span className="text-xs text-gray-500 font-medium min-w-[60px]">Design:</span>
                           <div className="flex flex-wrap gap-1">
@@ -190,7 +209,7 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInT
                           </div>
                         </div>
                       )}
-                      {module.developmentPerformers.length > 0 && (
+                      {(module.frontendDays > 0 || module.backendDays > 0) && module.developmentPerformers.length > 0 && (
                         <div className="flex items-start gap-1">
                           <span className="text-xs text-gray-500 font-medium min-w-[60px]">Dev:</span>
                           <div className="flex flex-wrap gap-1">

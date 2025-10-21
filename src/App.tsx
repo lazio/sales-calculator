@@ -35,6 +35,9 @@ function App() {
   // Discount section visibility
   const [showDiscount, setShowDiscount] = useState<boolean>(false);
 
+  // Currency symbol ($ for USD, € for EUR)
+  const [currency, setCurrency] = useState<'$' | '€'>('$');
+
   // Calculate max overlap based on enabled modules
   const maxOverlapDays = useMemo(() => {
     const enabledModules = modules.filter(m => m.isEnabled);
@@ -111,6 +114,10 @@ function App() {
     setShowDiscount(true);
   };
 
+  const handleCurrencyToggle = () => {
+    setCurrency(currency === '$' ? '€' : '$');
+  };
+
   return (
     <AppLayout
       leftPanel={
@@ -123,7 +130,7 @@ function App() {
 
             {/* Rate Configuration */}
             <CollapsibleSection title="Monthly Rates" defaultExpanded={true}>
-              <RateConfiguration rates={rates} onRateChange={handleRateChange} onRateDelete={handleRateDelete} />
+              <RateConfiguration rates={rates} onRateChange={handleRateChange} onRateDelete={handleRateDelete} currency={currency} />
             </CollapsibleSection>
 
             {/* Feature Toggles */}
@@ -136,6 +143,7 @@ function App() {
                   modulesInTimeline={quote.modulesInTimeline}
                   rates={rates}
                   overlapDays={workOverlap}
+                  currency={currency}
                 />
               </CollapsibleSection>
             )}
@@ -184,6 +192,8 @@ function App() {
             modules={modules}
             overlapDays={workOverlap}
             onPriceClick={handlePriceClick}
+            currency={currency}
+            onCurrencyToggle={handleCurrencyToggle}
           />
         </RightPanel>
       }

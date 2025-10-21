@@ -16,6 +16,8 @@ interface QuoteSummaryProps {
   modules?: ProjectModule[];
   overlapDays?: number;
   onPriceClick?: () => void;
+  currency?: '$' | '€';
+  onCurrencyToggle?: () => void;
 }
 
 export default function QuoteSummary({
@@ -30,7 +32,9 @@ export default function QuoteSummary({
   finalTotal,
   modules = [],
   overlapDays = Infinity,
-  onPriceClick
+  onPriceClick,
+  currency = '$',
+  onCurrencyToggle
 }: QuoteSummaryProps) {
   const displayTotal = finalTotal !== undefined ? finalTotal : totalQuote;
   const [copied, setCopied] = useState(false);
@@ -57,19 +61,19 @@ export default function QuoteSummary({
 PROJECT QUOTE SUMMARY
 =====================
 
-Total: $${displayTotal.toLocaleString()}
-${discountAmount > 0 ? `Original: $${totalQuote.toLocaleString()}\nDiscount: -$${discountAmount.toLocaleString()}\n` : ''}
+Total: ${currency}${displayTotal.toLocaleString()}
+${discountAmount > 0 ? `Original: ${currency}${totalQuote.toLocaleString()}\nDiscount: -${currency}${discountAmount.toLocaleString()}\n` : ''}
 Timeline: ${totalDays} working days
 
 WORK BREAKDOWN
 --------------
-Design Effort: ${designDays} days ($${designCost.toLocaleString()})
-Development Effort: ${developmentDays} days ($${developmentCost.toLocaleString()})
+Design Effort: ${designDays} days (${currency}${designCost.toLocaleString()})
+Development Effort: ${developmentDays} days (${currency}${developmentCost.toLocaleString()})
 Total Effort: ${designDays + developmentDays} days completed in ${totalDays} calendar days
 
 TEAM RATES
 ----------
-Monthly Rate Card: $${monthlyFee.toLocaleString()}
+Monthly Rate Card: ${currency}${monthlyFee.toLocaleString()}
 
 Generated with Project Quote Calculator
     `.trim();
@@ -120,17 +124,17 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
     const markdown = `# Project Quote Summary
 
 ## Budget Overview
-- **Total Quote:** $${displayTotal.toLocaleString()}
-${discountAmount > 0 ? `- **Original Price:** $${totalQuote.toLocaleString()}\n- **Discount:** -$${discountAmount.toLocaleString()}\n` : ''}
+- **Total Quote:** ${currency}${displayTotal.toLocaleString()}
+${discountAmount > 0 ? `- **Original Price:** ${currency}${totalQuote.toLocaleString()}\n- **Discount:** -${currency}${discountAmount.toLocaleString()}\n` : ''}
 - **Timeline:** ${totalDays} working days
 
 ## Work Breakdown
-- **Design Phase:** ${designDays} days - $${designCost.toLocaleString()}
-- **Development Phase:** ${developmentDays} days - $${developmentCost.toLocaleString()}
+- **Design Phase:** ${designDays} days - ${currency}${designCost.toLocaleString()}
+- **Development Phase:** ${developmentDays} days - ${currency}${developmentCost.toLocaleString()}
 - **Total Effort:** ${designDays + developmentDays} days completed in ${totalDays} calendar days
 
 ## Team Rates
-- **Monthly Rate Card:** $${monthlyFee.toLocaleString()}
+- **Monthly Rate Card:** ${currency}${monthlyFee.toLocaleString()}
 
 ## Module Details
 
@@ -164,20 +168,33 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
         <h2 className="text-2xl font-bold text-white mb-2">
           {discountAmount > 0 ? 'Final Total' : 'Total Quote'}
         </h2>
-        <div
-          className={`text-6xl font-bold text-white mb-2 ${onPriceClick ? 'cursor-pointer hover:text-white/90 transition-colors' : ''}`}
-          onClick={onPriceClick}
-          title={onPriceClick && discountAmount === 0 ? 'Click to add discount' : undefined}
-        >
-          ${displayTotal.toLocaleString()}
+        <div className="text-6xl font-bold text-white mb-2 flex items-center gap-1">
+          {onCurrencyToggle ? (
+            <span
+              onClick={onCurrencyToggle}
+              className="cursor-pointer hover:text-white/80 transition-colors"
+              title="Click to toggle currency"
+            >
+              {currency}
+            </span>
+          ) : (
+            <span>{currency}</span>
+          )}
+          <span
+            className={onPriceClick ? 'cursor-pointer hover:text-white/90 transition-colors' : ''}
+            onClick={onPriceClick}
+            title={onPriceClick && discountAmount === 0 ? 'Click to add discount' : undefined}
+          >
+            {displayTotal.toLocaleString()}
+          </span>
         </div>
         {discountAmount > 0 && (
           <div className="flex items-center gap-2 mb-2">
             <span className="text-white/60 line-through text-xl">
-              ${totalQuote.toLocaleString()}
+              {currency}{totalQuote.toLocaleString()}
             </span>
             <span className="px-2 py-1 bg-green-500 text-white text-sm font-semibold rounded">
-              -${discountAmount.toLocaleString()} saved
+              -{currency}{discountAmount.toLocaleString()} saved
             </span>
           </div>
         )}
@@ -260,7 +277,7 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
             <div className="border-l border-white/20 pl-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-white/90 text-sm">Monthly Rate Card</span>
-                <span className="text-white font-bold text-lg">${monthlyFee.toLocaleString()}</span>
+                <span className="text-white font-bold text-lg">{currency}{monthlyFee.toLocaleString()}</span>
               </div>
               <p className="text-white/60 text-xs">
                 Total monthly fee for all performers
@@ -278,7 +295,7 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
             <div className="flex justify-between items-center mb-1">
               <h3 className="text-lg font-semibold text-white">Design Phase</h3>
               <span className="text-2xl font-bold text-white">
-                ${designCost.toLocaleString()}
+                {currency}{designCost.toLocaleString()}
               </span>
             </div>
             <p className="text-sm text-white/80">{designDays} days</p>
@@ -291,7 +308,7 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
             <div className="flex justify-between items-center mb-1">
               <h3 className="text-lg font-semibold text-white">Development Phase</h3>
               <span className="text-2xl font-bold text-white">
-                ${developmentCost.toLocaleString()}
+                {currency}{developmentCost.toLocaleString()}
               </span>
             </div>
             <p className="text-sm text-white/80">{developmentDays} days</p>
