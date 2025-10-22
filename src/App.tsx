@@ -35,8 +35,8 @@ function App() {
   // Discount section visibility
   const [showDiscount, setShowDiscount] = useState<boolean>(false);
 
-  // Currency symbol ($ for USD, € for EUR)
-  const [currency, setCurrency] = useState<'$' | '€'>('$');
+  // Currency symbol ($ for USD, € for EUR) - persisted in localStorage
+  const [currency, setCurrency] = useLocalStorage<'$' | '€'>('quote-calculator-currency', '$');
 
   // Filter rates to only show performers from the current CSV modules
   const visibleRates = useMemo(() => {

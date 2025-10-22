@@ -119,7 +119,9 @@ export function calculateQuote(
 
   // Calculate design and development days for included modules
   const totalDesignDays = modulesToInclude.reduce((sum, m) => sum + m.designDays, 0);
-  const totalDevelopmentDays = modulesToInclude.reduce((sum, m) => sum + Math.max(m.frontendDays, m.backendDays), 0);
+  const totalFrontendDaysIncluded = modulesToInclude.reduce((sum, m) => sum + m.frontendDays, 0);
+  const totalBackendDaysIncluded = modulesToInclude.reduce((sum, m) => sum + m.backendDays, 0);
+  const totalDevelopmentDays = Math.max(totalFrontendDaysIncluded, totalBackendDaysIncluded);
 
   // Calculate design cost
   let designCost = 0;
