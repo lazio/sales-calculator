@@ -35,6 +35,9 @@ function App() {
   // Discount section visibility
   const [showDiscount, setShowDiscount] = useState<boolean>(false);
 
+  // CSV section visibility
+  const [csvSectionExpanded, setCsvSectionExpanded] = useState<boolean>(false);
+
   // Currency symbol ($ for USD, € for EUR) - persisted in localStorage
   const [currency, setCurrency] = useLocalStorage<'$' | '€'>('quote-calculator-currency', '$');
 
@@ -97,6 +100,7 @@ function App() {
   const handleCSVImport = (importedModules: ProjectModule[]) => {
     setModules(importedModules);
     setCustomTimeline(null); // Reset timeline when new modules are imported
+    setCsvSectionExpanded(false); // Collapse CSV section after successful import
 
     // Add missing performers to rates with default rate
     const missingPerformers = getMissingPerformers(importedModules, rates.map(r => r.role));
@@ -148,18 +152,22 @@ function App() {
         <LeftPanel>
           <div className="space-y-4">
             {/* CSV Import */}
-            <CollapsibleSection title="CSV Import" defaultExpanded={true}>
+            <CollapsibleSection
+              title="CSV Import"
+              isExpanded={csvSectionExpanded}
+              onToggle={setCsvSectionExpanded}
+            >
               <CSVImporter onImport={handleCSVImport} />
             </CollapsibleSection>
 
             {/* Rate Configuration */}
-            <CollapsibleSection title="Monthly Rates" defaultExpanded={true}>
+            <CollapsibleSection title="Monthly Rates" defaultExpanded={false}>
               <RateConfiguration rates={visibleRates} onRateChange={handleRateChange} onRateDelete={handleRateDelete} currency={currency} />
             </CollapsibleSection>
 
             {/* Feature Toggles */}
             {modules.length > 0 && (
-              <CollapsibleSection title="Project Modules" defaultExpanded={true}>
+              <CollapsibleSection title="Project Modules" defaultExpanded={false}>
                 <ModuleList
                   modules={modules}
                   onToggle={handleModuleToggle}
@@ -173,7 +181,7 @@ function App() {
             )}
 
             {/* Timeline Adjustment */}
-            <CollapsibleSection title="Timeline Adjustment" defaultExpanded={true}>
+            <CollapsibleSection title="Timeline Adjustment" defaultExpanded={false}>
               <div className="space-y-4">
                 <WorkOverlapSlider
                   overlapDays={workOverlap}
@@ -192,7 +200,7 @@ function App() {
 
             {/* Discount */}
             {showDiscount && (
-              <CollapsibleSection title="Discount" defaultExpanded={true}>
+              <CollapsibleSection title="Discount" defaultExpanded={false}>
                 <DiscountInput discount={discount} onDiscountChange={handleDiscountChange} />
               </CollapsibleSection>
             )}

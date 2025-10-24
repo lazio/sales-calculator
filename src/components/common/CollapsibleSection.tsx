@@ -4,19 +4,35 @@ interface CollapsibleSectionProps {
   title: string;
   children: ReactNode;
   defaultExpanded?: boolean;
+  isExpanded?: boolean;
+  onToggle?: (expanded: boolean) => void;
 }
 
 export default function CollapsibleSection({
   title,
   children,
   defaultExpanded = true,
+  isExpanded: controlledIsExpanded,
+  onToggle,
 }: CollapsibleSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [internalIsExpanded, setInternalIsExpanded] = useState(defaultExpanded);
+
+  // Use controlled state if provided, otherwise use internal state
+  const isExpanded = controlledIsExpanded !== undefined ? controlledIsExpanded : internalIsExpanded;
+
+  const handleToggle = () => {
+    const newValue = !isExpanded;
+    if (onToggle) {
+      onToggle(newValue);
+    } else {
+      setInternalIsExpanded(newValue);
+    }
+  };
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={handleToggle}
         className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
       >
         <h3 className="text-lg font-semibold text-gray-800">{title}</h3>

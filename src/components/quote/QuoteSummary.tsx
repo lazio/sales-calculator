@@ -37,6 +37,7 @@ export default function QuoteSummary({
   onCurrencyToggle
 }: QuoteSummaryProps) {
   const displayTotal = finalTotal !== undefined ? finalTotal : totalQuote;
+  const roundedTotal = Math.round(displayTotal / 500) * 500;
   const [copied, setCopied] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -61,7 +62,7 @@ export default function QuoteSummary({
 PROJECT QUOTE SUMMARY
 =====================
 
-Total: ${currency}${displayTotal.toLocaleString()}
+Total: ~${currency}${roundedTotal.toLocaleString()}
 ${discountAmount > 0 ? `Original: ${currency}${totalQuote.toLocaleString()}\nDiscount: -${currency}${discountAmount.toLocaleString()}\n` : ''}
 Timeline: ${totalDays} working days
 
@@ -124,7 +125,7 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
     const markdown = `# Project Quote Summary
 
 ## Budget Overview
-- **Total Quote:** ${currency}${displayTotal.toLocaleString()}
+- **Total Quote:** ~${currency}${roundedTotal.toLocaleString()}
 ${discountAmount > 0 ? `- **Original Price:** ${currency}${totalQuote.toLocaleString()}\n- **Discount:** -${currency}${discountAmount.toLocaleString()}\n` : ''}
 - **Timeline:** ${totalDays} working days
 
@@ -163,51 +164,6 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
 
   return (
     <div className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl shadow-xl p-8 animate-fade-in">
-      {/* Total Quote Section */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white mb-2">
-          {discountAmount > 0 ? 'Final Total' : 'Total Quote'}
-        </h2>
-        <div className="text-6xl font-bold text-white mb-2 flex items-center gap-1">
-          {onCurrencyToggle ? (
-            <span
-              onClick={onCurrencyToggle}
-              className="cursor-pointer hover:text-white/80 transition-colors"
-              title="Click to toggle currency"
-            >
-              {currency}
-            </span>
-          ) : (
-            <span>{currency}</span>
-          )}
-          <span
-            className={onPriceClick ? 'cursor-pointer hover:text-white/90 transition-colors' : ''}
-            onClick={onPriceClick}
-            title={onPriceClick && discountAmount === 0 ? 'Click to add discount' : undefined}
-          >
-            {displayTotal.toLocaleString()}
-          </span>
-        </div>
-        {discountAmount > 0 && (
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-white/60 line-through text-xl">
-              {currency}{totalQuote.toLocaleString()}
-            </span>
-            <span className="px-2 py-1 bg-green-500 text-white text-sm font-semibold rounded">
-              -{currency}{discountAmount.toLocaleString()} saved
-            </span>
-          </div>
-        )}
-        <p className="text-white/90 text-lg">
-          {totalDays > 0 ? `${totalDays} working days timeline` : 'Your estimated total'}
-        </p>
-        {totalDays > 0 && (
-          <p className="text-white/70 text-sm mt-1">
-            Design and development work in parallel
-          </p>
-        )}
-      </div>
-
       {/* Work Breakdown */}
       {totalDays > 0 && (
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 mb-8">
@@ -288,30 +244,72 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
       )}
 
       {/* Price Breakdown */}
-      <div className="space-y-4 mb-8">
-        {/* Design Phase */}
-        {designDays > 0 && (
-          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5">
-            <div className="flex justify-between items-center mb-1">
-              <h3 className="text-lg font-semibold text-white">Design Phase</h3>
-              <span className="text-2xl font-bold text-white">
-                {currency}{designCost.toLocaleString()}
-              </span>
-            </div>
-            <p className="text-sm text-white/80">{designDays} days</p>
-          </div>
-        )}
+      {(designDays > 0 || developmentDays > 0) && (
+        <div className="mb-8">
+          <div className={`grid gap-4 ${designDays > 0 && developmentDays > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {/* Design Phase */}
+            {designDays > 0 && (
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5">
+                <div className="flex justify-between items-center mb-1">
+                  <h4 className="text-lg font-semibold text-white">Design Phase</h4>
+                  <span className="text-2xl font-bold text-white">
+                    {currency}{designCost.toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-sm text-white/80">{designDays} days</p>
+              </div>
+            )}
 
-        {/* Development Phase */}
-        {developmentDays > 0 && (
-          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5">
-            <div className="flex justify-between items-center mb-1">
-              <h3 className="text-lg font-semibold text-white">Development Phase</h3>
-              <span className="text-2xl font-bold text-white">
-                {currency}{developmentCost.toLocaleString()}
-              </span>
-            </div>
-            <p className="text-sm text-white/80">{developmentDays} days</p>
+            {/* Development Phase */}
+            {developmentDays > 0 && (
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5">
+                <div className="flex justify-between items-center mb-1">
+                  <h4 className="text-lg font-semibold text-white">Development Phase</h4>
+                  <span className="text-2xl font-bold text-white">
+                    {currency}{developmentCost.toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-sm text-white/80">{developmentDays} days</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Total Quote Section */}
+      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-6 border border-white/20">
+        <h2 className="text-xl font-bold text-white mb-3">
+          {discountAmount > 0 ? 'Final Total' : 'Total Quote'}
+        </h2>
+        <div className="text-4xl font-bold text-white mb-3 flex items-center gap-1">
+          <span>~</span>
+          {onCurrencyToggle ? (
+            <span
+              onClick={onCurrencyToggle}
+              className="transition-colors cursor-pointer"
+              title="Click to toggle currency"
+            >
+              {currency}
+            </span>
+          ) : (
+            <span>{currency}</span>
+          )}
+          <span
+            className={onPriceClick ? 'hover:text-white/90 transition-colors cursor-pointer' : ''}
+            onClick={onPriceClick}
+            title={onPriceClick && discountAmount === 0 ? 'Click to add discount' : undefined}
+          >
+            {roundedTotal.toLocaleString()}
+          </span>
+        </div>
+        {discountAmount > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-white/60 line-through text-xl">
+              {currency}{totalQuote.toLocaleString()}
+            </span>
+            <span className="px-3 py-1 bg-green-500 text-white text-sm font-semibold rounded-lg shadow-lg">
+              -{currency}{discountAmount.toLocaleString()} saved
+            </span>
           </div>
         )}
       </div>
