@@ -2,11 +2,20 @@ import { useState, useMemo } from 'react';
 import { ProjectModule } from '@/types/project.types';
 import { RateConfig } from '@/types/rates.types';
 import { calculateModuleStats, calculateModulePrice } from '@/services/calculationEngine';
+import AddModuleForm from './AddModuleForm';
 
 interface ModuleListProps {
   modules: ProjectModule[];
   onToggle: (id: string) => void;
   onBulkToggle?: (enabled: boolean) => void;
+  onAddModule?: (moduleData: {
+    name: string;
+    designDays: number;
+    frontendDays: number;
+    backendDays: number;
+    designPerformers: string[];
+    developmentPerformers: string[];
+  }) => void;
   modulesInTimeline?: string[]; // IDs of modules that fit in the timeline
   rates: RateConfig[];
   overlapDays?: number;
@@ -15,9 +24,10 @@ interface ModuleListProps {
 
 type SortOption = 'default' | 'name' | 'price' | 'timeline';
 
-export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInTimeline, rates, overlapDays = Infinity, currency = '$' }: ModuleListProps) {
+export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModule, modulesInTimeline, rates, overlapDays = Infinity, currency = '$' }: ModuleListProps) {
   const [sortBy, setSortBy] = useState<SortOption>('default');
   const [sortDesc, setSortDesc] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   if (modules.length === 0) {
     return null;
@@ -72,18 +82,58 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInT
     }
   };
 
+  const handleAddModule = (moduleData: {
+    name: string;
+    designDays: number;
+    frontendDays: number;
+    backendDays: number;
+    designPerformers: string[];
+    developmentPerformers: string[];
+  }) => {
+    if (onAddModule) {
+      onAddModule(moduleData);
+      setShowAddForm(false);
+    }
+  };
+
+  const availablePerformers = rates.map(r => r.role);
+
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800">Project Modules</h3>
-            <p className="text-sm text-gray-600">
-              {modules.filter(m => m.isEnabled).length} of {modules.length} enabled • {timelineDays}d timeline • {effortDays}d effort
-            </p>
-          </div>
+        <div className="mb-2">
+          <h3 className="text-lg font-semibold text-gray-800">Project Modules</h3>
+          <p className="text-sm text-gray-600">
+            {modules.filter(m => m.isEnabled).length} of {modules.length} enabled • {timelineDays}d timeline • {effortDays}d effort
+          </p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 mb-3">
+          {onAddModule && (
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="px-3 py-1 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded transition-colors flex items-center gap-1"
+            >
+              {showAddForm ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cancel
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Module
+                </>
+              )}
+            </button>
+          )}
           {onBulkToggle && (
-            <div className="flex gap-2">
+            <>
               <button
                 onClick={() => onBulkToggle(true)}
                 className="px-3 py-1 text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 rounded transition-colors"
@@ -96,7 +146,7 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInT
               >
                 Disable All
               </button>
-            </div>
+            </>
           )}
         </div>
 
@@ -137,6 +187,15 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, modulesInT
           </button>
         </div>
       </div>
+
+      {/* Add Module Form */}
+      {showAddForm && onAddModule && (
+        <AddModuleForm
+          availablePerformers={availablePerformers}
+          onSubmit={handleAddModule}
+          onCancel={() => setShowAddForm(false)}
+        />
+      )}
 
       <div className="space-y-2">
         {sortedModules.map((module) => {

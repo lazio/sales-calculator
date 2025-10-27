@@ -139,6 +139,51 @@ function App() {
     setModules(modules.map(m => ({ ...m, isEnabled: enabled })));
   };
 
+  const handleAddModule = (moduleData: {
+    name: string;
+    designDays: number;
+    frontendDays: number;
+    backendDays: number;
+    designPerformers: string[];
+    developmentPerformers: string[];
+  }) => {
+    // Generate unique ID using timestamp
+    const id = `module-${Date.now()}`;
+
+    // Create new module
+    const newModule: ProjectModule = {
+      id,
+      name: moduleData.name,
+      designDays: moduleData.designDays,
+      frontendDays: moduleData.frontendDays,
+      backendDays: moduleData.backendDays,
+      designPerformers: moduleData.designPerformers,
+      developmentPerformers: moduleData.developmentPerformers,
+      isEnabled: true, // Enabled by default
+    };
+
+    // Add to modules array at the top
+    setModules([newModule, ...modules]);
+
+    // Auto-create missing performers (like CSV import does)
+    const allPerformers = [
+      ...moduleData.designPerformers,
+      ...moduleData.developmentPerformers,
+    ];
+    const missingPerformers = getMissingPerformers(
+      [newModule],
+      rates.map(r => r.role)
+    );
+
+    if (missingPerformers.length > 0) {
+      const newRates: RateConfig[] = missingPerformers.map(role => ({
+        role,
+        monthlyRate: 1000, // Default rate
+      }));
+      setRates([...rates, ...newRates]);
+    }
+  };
+
   const handleTimelineChange = (days: number) => {
     setCustomTimeline(days);
   };
@@ -192,6 +237,7 @@ function App() {
                   modules={modules}
                   onToggle={handleModuleToggle}
                   onBulkToggle={handleBulkToggle}
+                  onAddModule={handleAddModule}
                   modulesInTimeline={quote.modulesInTimeline}
                   rates={rates}
                   overlapDays={workOverlap}
