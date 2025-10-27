@@ -126,7 +126,13 @@ export function calculateQuote(
   const totalDesignDays = modulesToInclude.reduce((sum, m) => sum + m.designDays, 0);
   const totalFrontendDaysIncluded = modulesToInclude.reduce((sum, m) => sum + m.frontendDays, 0);
   const totalBackendDaysIncluded = modulesToInclude.reduce((sum, m) => sum + m.backendDays, 0);
-  const totalDevelopmentDays = Math.max(totalFrontendDaysIncluded, totalBackendDaysIncluded);
+
+  // Development days represents effort per performer (sum of MAX per module)
+  // This is what each development performer bills for
+  const totalDevelopmentDays = modulesToInclude.reduce((sum, m) => sum + Math.max(m.frontendDays, m.backendDays), 0);
+
+  // For timeline calculation, we need MAX of total frontend vs total backend
+  const totalDevTimelineDays = Math.max(totalFrontendDaysIncluded, totalBackendDaysIncluded);
 
   // Calculate design cost
   let designCost = 0;

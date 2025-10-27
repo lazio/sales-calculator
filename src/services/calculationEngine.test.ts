@@ -671,4 +671,265 @@ describe('calculationEngine', () => {
       expect(quote.totalDays).toBe(1);
     });
   });
+
+  describe('Per-performer discounts', () => {
+    it('should apply per-performer discount to single performer', () => {
+      // UI Designer gets 20% discount
+      const ratesWithDiscount: RateConfig[] = [
+        { role: 'UI Designer', monthlyRate: 4000, discount: 20 },
+        { role: 'Frontend Developer', monthlyRate: 5000 },
+        { role: 'Backend Developer', monthlyRate: 5000 },
+      ];
+
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Test Module',
+        designDays: 10,
+        frontendDays: 0,
+        backendDays: 0,
+        designPerformers: ['UI Designer'],
+        developmentPerformers: [],
+        isEnabled: true,
+      };
+
+      const quote = calculateQuote(ratesWithDiscount, [module]);
+
+      // UI Designer: $4000/month = $200/day
+      // With 20% discount: $200 * 0.8 = $160/day
+      // Total: 10 days * $160 = $1600
+      expect(quote.designCost).toBe(1600);
+      expect(quote.totalQuote).toBe(1600);
+    });
+
+    it('should apply different discounts to multiple performers', () => {
+      // UI Designer: 20% discount
+      // Frontend Developer: 10% discount
+      // Backend Developer: no discount
+      const ratesWithDiscounts: RateConfig[] = [
+        { role: 'UI Designer', monthlyRate: 4000, discount: 20 },
+        { role: 'Frontend Developer', monthlyRate: 5000, discount: 10 },
+        { role: 'Backend Developer', monthlyRate: 5000 },
+      ];
+
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Test Module',
+        designDays: 5,
+        frontendDays: 10,
+        backendDays: 10,
+        designPerformers: ['UI Designer'],
+        developmentPerformers: ['Frontend Developer', 'Backend Developer'],
+        isEnabled: true,
+      };
+
+      const quote = calculateQuote(ratesWithDiscounts, [module]);
+
+      // Design: UI Designer 5 days * $160/day (20% off) = $800
+      // Development (MAX(10, 10) = 10 days):
+      //   Frontend: 10 days * $225/day (10% off) = $2250
+      //   Backend: 10 days * $250/day (no discount) = $2500
+      // Total: $800 + $2250 + $2500 = $5550
+      expect(quote.designCost).toBe(800);
+      expect(quote.developmentCost).toBe(4750);
+      expect(quote.totalQuote).toBe(5550);
+    });
+
+    it('should combine per-performer discount with project discount', () => {
+      const ratesWithDiscount: RateConfig[] = [
+        { role: 'UI Designer', monthlyRate: 4000, discount: 20 },
+        { role: 'Frontend Developer', monthlyRate: 5000 },
+      ];
+
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Test Module',
+        designDays: 10,
+        frontendDays: 10,
+        backendDays: 0,
+        designPerformers: ['UI Designer'],
+        developmentPerformers: ['Frontend Developer'],
+        isEnabled: true,
+      };
+
+      const projectDiscount = 10; // 10% project-level discount
+      const quote = calculateQuote(ratesWithDiscount, [module], undefined, projectDiscount);
+
+      // Design: 10 days * $160/day (20% off) = $1600
+      // Development: 10 days * $250/day = $2500
+      // Subtotal after per-performer discount: $4100
+      // Project discount: $4100 * 10% = $410
+      // Final: $4100 - $410 = $3690
+      expect(quote.totalQuote).toBe(4100);
+      expect(quote.discountAmount).toBe(410);
+      expect(quote.finalTotal).toBe(3690);
+    });
+
+    it('should handle 0% per-performer discount (no effect)', () => {
+      const ratesWithZeroDiscount: RateConfig[] = [
+        { role: 'UI Designer', monthlyRate: 4000, discount: 0 },
+      ];
+
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Test Module',
+        designDays: 10,
+        frontendDays: 0,
+        backendDays: 0,
+        designPerformers: ['UI Designer'],
+        developmentPerformers: [],
+        isEnabled: true,
+      };
+
+      const quote = calculateQuote(ratesWithZeroDiscount, [module]);
+
+      // 0% discount = full price
+      // 10 days * $200/day = $2000
+      expect(quote.totalQuote).toBe(2000);
+    });
+
+    it('should handle 100% per-performer discount (free)', () => {
+      const ratesWithFullDiscount: RateConfig[] = [
+        { role: 'UI Designer', monthlyRate: 4000, discount: 100 },
+      ];
+
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Test Module',
+        designDays: 10,
+        frontendDays: 0,
+        backendDays: 0,
+        designPerformers: ['UI Designer'],
+        developmentPerformers: [],
+        isEnabled: true,
+      };
+
+      const quote = calculateQuote(ratesWithFullDiscount, [module]);
+
+      // 100% discount = free
+      expect(quote.totalQuote).toBe(0);
+      expect(quote.designCost).toBe(0);
+    });
+
+    it('should apply per-performer discount to both design and development costs', () => {
+      // Same performer appears in both design and development
+      const ratesWithDiscount: RateConfig[] = [
+        { role: 'Full Stack Developer', monthlyRate: 6000, discount: 25 },
+      ];
+
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Test Module',
+        designDays: 4,
+        frontendDays: 8,
+        backendDays: 0,
+        designPerformers: ['Full Stack Developer'],
+        developmentPerformers: ['Full Stack Developer'],
+        isEnabled: true,
+      };
+
+      const quote = calculateQuote(ratesWithDiscount, [module]);
+
+      // Full Stack: $6000/month = $300/day
+      // With 25% discount: $300 * 0.75 = $225/day
+      // Design: 4 days * $225 = $900
+      // Development: 8 days * $225 = $1800
+      // Total: $900 + $1800 = $2700
+      expect(quote.designCost).toBe(900);
+      expect(quote.developmentCost).toBe(1800);
+      expect(quote.totalQuote).toBe(2700);
+    });
+
+    it('should apply per-performer discount in module price calculation', () => {
+      const ratesWithDiscount: RateConfig[] = [
+        { role: 'UI Designer', monthlyRate: 4000, discount: 50 },
+        { role: 'Frontend Developer', monthlyRate: 5000, discount: 20 },
+      ];
+
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Test Module',
+        designDays: 10,
+        frontendDays: 20,
+        backendDays: 0,
+        designPerformers: ['UI Designer'],
+        developmentPerformers: ['Frontend Developer'],
+        isEnabled: true,
+      };
+
+      const price = calculateModulePrice(module, ratesWithDiscount);
+
+      // Design: 10 days * $100/day (50% off $200) = $1000
+      // Development: 20 days * $200/day (20% off $250) = $4000
+      // Total: $1000 + $4000 = $5000
+      expect(price).toBe(5000);
+    });
+
+    it('should handle missing discount field (treated as 0%)', () => {
+      // No discount field = no discount
+      const ratesWithoutDiscountField: RateConfig[] = [
+        { role: 'UI Designer', monthlyRate: 4000 }, // No discount field
+      ];
+
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Test Module',
+        designDays: 10,
+        frontendDays: 0,
+        backendDays: 0,
+        designPerformers: ['UI Designer'],
+        developmentPerformers: [],
+        isEnabled: true,
+      };
+
+      const quote = calculateQuote(ratesWithoutDiscountField, [module]);
+
+      // No discount = full price
+      // 10 days * $200/day = $2000
+      expect(quote.totalQuote).toBe(2000);
+    });
+
+    it('should apply per-performer discount across multiple modules', () => {
+      const ratesWithDiscount: RateConfig[] = [
+        { role: 'UI Designer', monthlyRate: 4000, discount: 25 },
+        { role: 'Frontend Developer', monthlyRate: 5000, discount: 10 },
+      ];
+
+      const modules: ProjectModule[] = [
+        {
+          id: 'module-1',
+          name: 'Module 1',
+          designDays: 5,
+          frontendDays: 10,
+          backendDays: 0,
+          designPerformers: ['UI Designer'],
+          developmentPerformers: ['Frontend Developer'],
+          isEnabled: true,
+        },
+        {
+          id: 'module-2',
+          name: 'Module 2',
+          designDays: 5,
+          frontendDays: 10,
+          backendDays: 0,
+          designPerformers: ['UI Designer'],
+          developmentPerformers: ['Frontend Developer'],
+          isEnabled: true,
+        },
+      ];
+
+      const quote = calculateQuote(ratesWithDiscount, modules);
+
+      // Module 1:
+      //   Design: 5 days * $150/day (25% off) = $750
+      //   Dev: 10 days * $225/day (10% off) = $2250
+      // Module 2:
+      //   Design: 5 days * $150/day = $750
+      //   Dev: 10 days * $225/day = $2250
+      // Total design: $1500, Total dev: $4500
+      // Grand total: $6000
+      expect(quote.designCost).toBe(1500);
+      expect(quote.developmentCost).toBe(4500);
+      expect(quote.totalQuote).toBe(6000);
+    });
+  });
 });
