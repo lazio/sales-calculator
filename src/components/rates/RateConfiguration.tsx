@@ -1,15 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RateConfig } from '@/types/rates.types';
 
 interface RateConfigurationProps {
   rates: RateConfig[];
   onRateChange: (index: number, newRate: number) => void;
   onRateDelete?: (index: number) => void;
+  onDiscountChange?: (index: number, discount: number) => void;
   currency?: '$' | '€';
 }
 
-export default function RateConfiguration({ rates, onRateChange, onRateDelete, currency = '$' }: RateConfigurationProps) {
+const EDITABLE_MODE_KEY = 'quote-calculator-rates-editable';
+
+export default function RateConfiguration({
+  rates,
+  onRateChange,
+  onRateDelete,
+  onDiscountChange,
+  currency = '$'
+}: RateConfigurationProps) {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [isEditable, setIsEditable] = useState<boolean>(() => {
+    // Load from localStorage, default to false (locked)
+    const stored = localStorage.getItem(EDITABLE_MODE_KEY);
+    return stored !== null ? JSON.parse(stored) : false;
+  });
+  const [showDiscountForIndex, setShowDiscountForIndex] = useState<number | null>(null);
+
+  // Persist editable mode to localStorage
+  useEffect(() => {
+    localStorage.setItem(EDITABLE_MODE_KEY, JSON.stringify(isEditable));
+  }, [isEditable]);
 
   const handleDelete = (index: number) => {
     if (deleteConfirm === index) {
@@ -24,8 +44,18 @@ export default function RateConfiguration({ rates, onRateChange, onRateDelete, c
   return (
     <div className="space-y-4">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Monthly Rates</h3>
-        <p className="text-sm text-gray-600">Configure the monthly rates for each team role</p>
+        <h3
+          onClick={() => setIsEditable(!isEditable)}
+          className="text-lg font-semibold text-gray-800 mb-2 cursor-pointer hover:text-gray-600 transition-colors"
+          title={isEditable ? 'Click to lock rates (enable discounts)' : 'Click to unlock rates (enable editing)'}
+        >
+          Monthly Rates
+        </h3>
+        <p className="text-sm text-gray-600">
+          {isEditable
+            ? 'Configure the monthly rates for each team role'
+            : 'Apply percentage discounts to performer rates'}
+        </p>
       </div>
 
       {rates.length === 0 ? (
@@ -49,58 +79,123 @@ export default function RateConfiguration({ rates, onRateChange, onRateDelete, c
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-        {rates.map((rate, index) => (
-          <div
-            key={rate.role}
-            className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-150"
-          >
-            <div className="flex items-start gap-3">
-              <label className="block flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-700">{rate.role}</span>
-                  <span className="text-sm text-gray-500">{currency}/month</span>
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 font-semibold">
-                    {currency}
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="100"
-                    value={rate.monthlyRate || ''}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      onRateChange(index, value === '' ? 0 : Number(value));
-                    }}
-                    className="w-full pl-8 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-150 outline-none font-semibold text-gray-900"
-                    placeholder="8000"
-                  />
-                </div>
-              </label>
-              {onRateDelete && (
-                <button
-                  onClick={() => handleDelete(index)}
-                  className={`mt-8 p-2 rounded-lg transition-all duration-150 ${
-                    deleteConfirm === index
-                      ? 'bg-red-600 text-white hover:bg-red-700'
-                      : 'text-red-600 hover:bg-red-50'
-                  }`}
-                  title={deleteConfirm === index ? 'Click again to confirm' : 'Remove rate'}
-                >
-                  {deleteConfirm === index ? (
-                    <span className="text-xs font-medium px-1">Confirm?</span>
+        <div className="space-y-2">
+        {rates.map((rate, index) => {
+          const discount = rate.discount || 0;
+          const effectiveRate = Math.round(rate.monthlyRate * (1 - discount / 100));
+          const showDiscount = showDiscountForIndex === index;
+
+          return (
+            <div
+              key={rate.role}
+              className={`rounded-lg p-3 transition-colors duration-150 ${
+                isEditable ? 'bg-gray-50 hover:bg-gray-100' : 'bg-blue-50 border border-blue-200'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className="block flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-gray-700">{rate.role}</span>
+                    <span className="text-sm text-gray-500">{currency}/month</span>
+                  </div>
+
+                  {/* Monthly Rate - Editable Mode: Input, Locked Mode: Clickable Text */}
+                  {isEditable ? (
+                    <div className="relative mb-2">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 font-semibold">
+                        {currency}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="100"
+                        value={rate.monthlyRate || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          onRateChange(index, value === '' ? 0 : Number(value));
+                        }}
+                        className="w-full pl-8 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-150 outline-none font-semibold text-gray-900 bg-white"
+                        placeholder="8000"
+                      />
+                    </div>
                   ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
+                    <div className="mb-2">
+                      <div
+                        onClick={() => setShowDiscountForIndex(showDiscount ? null : index)}
+                        className="cursor-pointer"
+                      >
+                        {discount > 0 ? (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-gray-500 line-through">
+                              {currency}{rate.monthlyRate.toLocaleString()}
+                            </span>
+                            <span className="text-gray-400">→</span>
+                            <span className="font-semibold text-gray-900">
+                              {currency}{effectiveRate.toLocaleString()}
+                            </span>
+                            <span className="text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded">
+                              {discount}% off
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="font-semibold text-gray-900">
+                            {currency}{rate.monthlyRate.toLocaleString()}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Discount Input (only when price is clicked) */}
+                      {showDiscount && onDiscountChange && (
+                        <div className="mt-2 animate-fade-in">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">Discount</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="1"
+                              value={discount || ''}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                const numValue = value === '' ? 0 : Math.min(100, Math.max(0, Number(value)));
+                                onDiscountChange(index, numValue);
+                              }}
+                              className="w-20 px-2 py-1 text-sm border-2 border-blue-300 rounded focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none font-semibold text-gray-900 bg-white"
+                              placeholder="0"
+                              autoFocus
+                            />
+                            <span className="text-sm text-gray-600">%</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
-                </button>
-              )}
+                </div>
+
+                {/* Delete Button (only in editable mode) */}
+                {isEditable && onRateDelete && (
+                  <button
+                    onClick={() => handleDelete(index)}
+                    className={`mt-6 p-1.5 rounded-lg transition-all duration-150 ${
+                      deleteConfirm === index
+                        ? 'bg-red-600 text-white hover:bg-red-700'
+                        : 'text-red-600 hover:bg-red-50'
+                    }`}
+                    title={deleteConfirm === index ? 'Click again to confirm' : 'Remove rate'}
+                  >
+                    {deleteConfirm === index ? (
+                      <span className="text-xs font-medium px-1">Confirm?</span>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         </div>
       )}
 

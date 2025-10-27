@@ -97,6 +97,20 @@ function App() {
     setRates(updatedRates);
   };
 
+  const handlePerformerDiscountChange = (index: number, discount: number) => {
+    // Get the role from visibleRates using the index
+    const roleToUpdate = visibleRates[index]?.role;
+    if (!roleToUpdate) return;
+
+    // Find and update the discount in the full rates array
+    const updatedRates = rates.map(rate =>
+      rate.role === roleToUpdate
+        ? { ...rate, discount }
+        : rate
+    );
+    setRates(updatedRates);
+  };
+
   const handleCSVImport = (importedModules: ProjectModule[]) => {
     setModules(importedModules);
     setCustomTimeline(null); // Reset timeline when new modules are imported
@@ -162,7 +176,13 @@ function App() {
 
             {/* Rate Configuration */}
             <CollapsibleSection title="Monthly Rates" defaultExpanded={false}>
-              <RateConfiguration rates={visibleRates} onRateChange={handleRateChange} onRateDelete={handleRateDelete} currency={currency} />
+              <RateConfiguration
+                rates={visibleRates}
+                onRateChange={handleRateChange}
+                onRateDelete={handleRateDelete}
+                onDiscountChange={handlePerformerDiscountChange}
+                currency={currency}
+              />
             </CollapsibleSection>
 
             {/* Feature Toggles */}
@@ -226,6 +246,7 @@ function App() {
             onPriceClick={handlePriceClick}
             currency={currency}
             onCurrencyToggle={handleCurrencyToggle}
+            rates={rates}
           />
         </RightPanel>
       }

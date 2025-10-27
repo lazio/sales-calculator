@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ProjectModule } from '@/types/project.types';
+import { RateConfig } from '@/types/rates.types';
 
 interface QuoteSummaryProps {
   totalQuote: number;
@@ -18,6 +19,7 @@ interface QuoteSummaryProps {
   onPriceClick?: () => void;
   currency?: '$' | '€';
   onCurrencyToggle?: () => void;
+  rates?: RateConfig[];
 }
 
 export default function QuoteSummary({
@@ -34,13 +36,48 @@ export default function QuoteSummary({
   overlapDays = Infinity,
   onPriceClick,
   currency = '$',
-  onCurrencyToggle
+  onCurrencyToggle,
+  rates = []
 }: QuoteSummaryProps) {
   const displayTotal = finalTotal !== undefined ? finalTotal : totalQuote;
   const roundedTotal = Math.round(displayTotal / 500) * 500;
   const [copied, setCopied] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+
+  // Calculate rate discounts
+  const ratesWithDiscounts = rates.filter(r => (r.discount || 0) > 0);
+  const rateDiscountCount = ratesWithDiscounts.length;
+
+  // Calculate what the quote would be without per-performer discounts
+  const quoteWithoutRateDiscounts = rates.length > 0 ? (() => {
+    // Calculate cost manually with all discounts set to 0
+    const BUSINESS_DAYS_PER_MONTH = 20;
+    const enabledModules = modules.filter(m => m.isEnabled);
+
+    let fullCost = 0;
+    for (const module of enabledModules) {
+      // Design cost
+      for (const performer of module.designPerformers) {
+        const rate = rates.find(r => r.role === performer);
+        if (rate) {
+          fullCost += (rate.monthlyRate / BUSINESS_DAYS_PER_MONTH) * module.designDays;
+        }
+      }
+      // Development cost
+      const devDays = Math.max(module.frontendDays, module.backendDays);
+      for (const performer of module.developmentPerformers) {
+        const rate = rates.find(r => r.role === performer);
+        if (rate) {
+          fullCost += (rate.monthlyRate / BUSINESS_DAYS_PER_MONTH) * devDays;
+        }
+      }
+    }
+    return Math.round(fullCost);
+  })() : totalQuote;
+
+  const rateDiscountAmount = quoteWithoutRateDiscounts - totalQuote;
+  const hasRateDiscounts = rateDiscountCount > 0 && rateDiscountAmount > 0;
 
   const enabledModules = modules.filter(m => m.isEnabled);
   const disabledModules = modules.filter(m => !m.isEnabled);
@@ -277,11 +314,42 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
       )}
 
       {/* Total Quote Section */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-6 border border-white/20">
-        <h2 className="text-xl font-bold text-white mb-3">
-          {discountAmount > 0 ? 'Final Total' : 'Total Quote'}
+      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/20">
+        <h2 className="text-base font-bold text-white mb-3">
+          Total Quote
         </h2>
-        <div className="text-4xl font-bold text-white mb-3 flex items-center gap-1">
+
+        {/* Show discount breakdown if rate discounts or global discounts exist */}
+        {(hasRateDiscounts || discountAmount > 0) && (
+          <div className="space-y-1 mb-3 text-sm">
+            <div className="flex items-center justify-between text-white/80">
+              <span>Full price</span>
+              <span>{currency}{quoteWithoutRateDiscounts.toLocaleString()}</span>
+            </div>
+            {hasRateDiscounts && (
+              <div className="flex items-center justify-between text-green-400">
+                <span className="flex items-center gap-1">
+                  <span>↓</span>
+                  <span>Rate discounts</span>
+                  <span className="text-xs text-green-300">({rateDiscountCount})</span>
+                </span>
+                <span>-{currency}{rateDiscountAmount.toLocaleString()}</span>
+              </div>
+            )}
+            {discountAmount > 0 && (
+              <div className="flex items-center justify-between text-green-400">
+                <span className="flex items-center gap-1">
+                  <span>↓</span>
+                  <span>Project discount</span>
+                </span>
+                <span>-{currency}{discountAmount.toLocaleString()}</span>
+              </div>
+            )}
+            <div className="border-t border-white/20 pt-1 mt-1"></div>
+          </div>
+        )}
+
+        <div className="text-3xl font-bold text-white flex items-center gap-1">
           <span>~</span>
           {onCurrencyToggle ? (
             <span
@@ -302,16 +370,6 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
             {roundedTotal.toLocaleString()}
           </span>
         </div>
-        {discountAmount > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-white/60 line-through text-xl">
-              {currency}{totalQuote.toLocaleString()}
-            </span>
-            <span className="px-3 py-1 bg-green-500 text-white text-sm font-semibold rounded-lg shadow-lg">
-              -{currency}{discountAmount.toLocaleString()} saved
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Export Actions */}

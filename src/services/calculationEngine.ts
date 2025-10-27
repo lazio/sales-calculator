@@ -64,10 +64,15 @@ export function calculateQuote(
 ): QuoteCalculation {
   const enabledModules = modules.filter(m => m.isEnabled);
 
-  // Helper: Get daily rate for a performer
+  // Helper: Get daily rate for a performer (with discount applied)
   const getDailyRate = (performerName: string): number => {
     const rate = rates.find(r => r.role === performerName);
-    return rate ? rate.monthlyRate / BUSINESS_DAYS_PER_MONTH : 0;
+    if (!rate) return 0;
+
+    // Apply per-performer discount if present
+    const discount = rate.discount || 0;
+    const effectiveMonthlyRate = rate.monthlyRate * (1 - discount / 100);
+    return effectiveMonthlyRate / BUSINESS_DAYS_PER_MONTH;
   };
 
   // Calculate optimal timeline days with overlap
@@ -217,10 +222,15 @@ export function calculateModulePrice(
   module: ProjectModule,
   rates: RateConfig[]
 ): number {
-  // Helper: Get daily rate for a performer
+  // Helper: Get daily rate for a performer (with discount applied)
   const getDailyRate = (performerName: string): number => {
     const rate = rates.find(r => r.role === performerName);
-    return rate ? rate.monthlyRate / BUSINESS_DAYS_PER_MONTH : 0;
+    if (!rate) return 0;
+
+    // Apply per-performer discount if present
+    const discount = rate.discount || 0;
+    const effectiveMonthlyRate = rate.monthlyRate * (1 - discount / 100);
+    return effectiveMonthlyRate / BUSINESS_DAYS_PER_MONTH;
   };
 
   // Calculate design cost
