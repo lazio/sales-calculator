@@ -172,10 +172,6 @@ function App() {
     setModules([newModule, ...modules]);
 
     // Auto-create missing performers (like CSV import does)
-    const allPerformers = [
-      ...moduleData.designPerformers,
-      ...moduleData.developmentPerformers,
-    ];
     const missingPerformers = getMissingPerformers(
       [newModule],
       rates.map(r => r.role)
