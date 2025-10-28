@@ -6,7 +6,6 @@ import QuoteSummary from '@/components/quote/QuoteSummary';
 import RateConfiguration from '@/components/rates/RateConfiguration';
 import CSVImporter from '@/components/csv/CSVImporter';
 import ModuleList from '@/components/features/ModuleList';
-import TimelineSlider from '@/components/timeline/TimelineSlider';
 import WorkOverlapSlider from '@/components/overlap/WorkOverlapSlider';
 import DiscountInput from '@/components/discount/DiscountInput';
 import CollapsibleSection from '@/components/common/CollapsibleSection';
@@ -22,9 +21,6 @@ function App() {
 
   // Project modules from CSV
   const [modules, setModules] = useState<ProjectModule[]>([]);
-
-  // Timeline adjustment (null means use optimal timeline)
-  const [customTimeline, setCustomTimeline] = useState<number | null>(null);
 
   // Work overlap (in days) - default: 1 month (20 business days) after design starts
   const [workOverlap, setWorkOverlap] = useState<number>(20);
@@ -64,11 +60,23 @@ function App() {
     return Math.min(totalDesign, totalDev);
   }, [modules]);
 
+  // Check if there are both design and development services
+  const hasBothDesignAndDevelopment = useMemo(() => {
+    const enabledModules = modules.filter(m => m.isEnabled);
+    if (enabledModules.length === 0) return false;
+
+    const totalDesign = enabledModules.reduce((sum, m) => sum + m.designDays, 0);
+    const totalFrontend = enabledModules.reduce((sum, m) => sum + m.frontendDays, 0);
+    const totalBackend = enabledModules.reduce((sum, m) => sum + m.backendDays, 0);
+    const totalDev = Math.max(totalFrontend, totalBackend);
+
+    return totalDesign > 0 && totalDev > 0;
+  }, [modules]);
+
   // Use custom hook for quote calculations
-  const { quote, timelineConstraints } = useQuoteCalculation(
+  const quote = useQuoteCalculation(
     rates,
     modules,
-    customTimeline,
     discount,
     workOverlap
   );
@@ -113,7 +121,6 @@ function App() {
 
   const handleCSVImport = (importedModules: ProjectModule[]) => {
     setModules(importedModules);
-    setCustomTimeline(null); // Reset timeline when new modules are imported
     setCsvSectionExpanded(false); // Collapse CSV section after successful import
 
     // Add missing performers to rates with default rate
@@ -132,7 +139,6 @@ function App() {
     setModules(modules.map(m =>
       m.id === id ? { ...m, isEnabled: !m.isEnabled } : m
     ));
-    // Don't reset customTimeline - let it recalculate which modules fit
   };
 
   const handleBulkToggle = (enabled: boolean) => {
@@ -184,17 +190,12 @@ function App() {
     }
   };
 
-  const handleTimelineChange = (days: number) => {
-    setCustomTimeline(days);
-  };
-
   const handleDiscountChange = (discountPercentage: number) => {
     setDiscount(discountPercentage);
   };
 
   const handleOverlapChange = (days: number) => {
     setWorkOverlap(days);
-    setCustomTimeline(null); // Reset timeline when overlap changes so it recalculates
   };
 
   const handlePriceClick = () => {
@@ -238,7 +239,6 @@ function App() {
                   onToggle={handleModuleToggle}
                   onBulkToggle={handleBulkToggle}
                   onAddModule={handleAddModule}
-                  modulesInTimeline={quote.modulesInTimeline}
                   rates={rates}
                   overlapDays={workOverlap}
                   currency={currency}
@@ -246,23 +246,16 @@ function App() {
               </CollapsibleSection>
             )}
 
-            {/* Timeline Adjustment */}
-            <CollapsibleSection title="Timeline Adjustment" defaultExpanded={false}>
-              <div className="space-y-4">
+            {/* Work Overlap - only show when there are both design and development services */}
+            {hasBothDesignAndDevelopment && (
+              <CollapsibleSection title="Work Overlap" defaultExpanded={false}>
                 <WorkOverlapSlider
                   overlapDays={workOverlap}
                   maxOverlapDays={maxOverlapDays}
                   onOverlapChange={handleOverlapChange}
                 />
-                <TimelineSlider
-                  minDays={timelineConstraints.min}
-                  maxDays={timelineConstraints.max}
-                  currentDays={timelineConstraints.current}
-                  optimalDays={timelineConstraints.optimal}
-                  onTimelineChange={handleTimelineChange}
-                />
-              </div>
-            </CollapsibleSection>
+              </CollapsibleSection>
+            )}
 
             {/* Discount */}
             {showDiscount && (

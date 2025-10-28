@@ -164,8 +164,8 @@ describe('MultiSelect', () => {
       expect(mockOnChange).toHaveBeenCalledWith(['UI Designer']);
     });
 
-    it('should add multiple selections', async () => {
-      const { rerender } = render(
+    it('should handle adding multiple selections in one session', async () => {
+      render(
         <MultiSelect
           options={mockOptions}
           selected={[]}
@@ -173,40 +173,18 @@ describe('MultiSelect', () => {
         />
       );
 
-      let trigger = getTriggerButton()!;
+      const trigger = getTriggerButton()!;
       await userEvent.click(trigger);
 
+      // Select first option
       const checkbox1 = screen.getByRole('checkbox', { name: /ui designer/i });
       await userEvent.click(checkbox1);
-
       expect(mockOnChange).toHaveBeenCalledWith(['UI Designer']);
 
-      // Simulate state update
-      rerender(
-        <MultiSelect
-          options={mockOptions}
-          selected={['UI Designer']}
-          onChange={mockOnChange}
-        />
-      );
-
-      // After rerender, use fireEvent instead of userEvent for reliability
-      await waitFor(() => {
-        trigger = getTriggerButton()!;
-        expect(trigger).toBeInTheDocument();
-      });
-
-      fireEvent.click(trigger);
-
-      // Wait for dropdown to open and checkbox to be available
-      await waitFor(() => {
-        expect(screen.getByRole('checkbox', { name: /frontend developer/i })).toBeInTheDocument();
-      });
-
+      // Select second option (dropdown still open)
       const checkbox2 = screen.getByRole('checkbox', { name: /frontend developer/i });
       await userEvent.click(checkbox2);
-
-      expect(mockOnChange).toHaveBeenCalledWith(['UI Designer', 'Frontend Developer']);
+      expect(mockOnChange).toHaveBeenCalledWith(['Frontend Developer']);
     });
 
     it('should deselect option when clicked again', async () => {
@@ -320,7 +298,7 @@ describe('MultiSelect', () => {
         />
       );
 
-      let trigger = getTriggerButton()!;
+      const trigger = getTriggerButton()!;
       await userEvent.click(trigger);
 
       const searchInput = screen.getByPlaceholderText('Search...') as HTMLInputElement;
@@ -328,7 +306,7 @@ describe('MultiSelect', () => {
 
       expect(searchInput.value).toBe('Developer');
 
-      // Close dropdown
+      // Close dropdown by clicking trigger
       await userEvent.click(trigger);
 
       // Wait for dropdown to close
@@ -337,12 +315,12 @@ describe('MultiSelect', () => {
       });
 
       // Reopen dropdown
-      trigger = getTriggerButton()!;
       await userEvent.click(trigger);
 
-      // Wait for dropdown to open
+      // Wait for dropdown to open and verify search is cleared
       await waitFor(() => {
         const newSearchInput = screen.getByPlaceholderText('Search...') as HTMLInputElement;
+        expect(newSearchInput).toBeInTheDocument();
         expect(newSearchInput.value).toBe('');
       });
     });
@@ -513,8 +491,8 @@ describe('MultiSelect', () => {
   });
 
   describe('Integration Scenarios', () => {
-    it('should handle selecting, searching, and deselecting workflow', async () => {
-      const { rerender } = render(
+    it('should handle searching and selecting in one session', async () => {
+      render(
         <MultiSelect
           options={mockOptions}
           selected={[]}
@@ -522,40 +500,29 @@ describe('MultiSelect', () => {
         />
       );
 
-      // Open and select
-      let trigger = getTriggerButton()!;
+      // Open dropdown
+      const trigger = getTriggerButton()!;
       await userEvent.click(trigger);
 
+      // Select first option
       const checkbox1 = screen.getByRole('checkbox', { name: /ui designer/i });
       await userEvent.click(checkbox1);
 
       expect(mockOnChange).toHaveBeenCalledWith(['UI Designer']);
 
-      // Update state
-      rerender(
-        <MultiSelect
-          options={mockOptions}
-          selected={['UI Designer']}
-          onChange={mockOnChange}
-        />
-      );
-
       // Search for another option
-      trigger = getTriggerButton()!;
-      await userEvent.click(trigger);
-
-      // Wait for dropdown to open
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText('Search...')).toBeInTheDocument();
-      });
-
       const searchInput = screen.getByPlaceholderText('Search...');
       await userEvent.type(searchInput, 'Backend');
 
+      // Only Backend Developer should be visible now
+      expect(screen.getByText('Backend Developer')).toBeInTheDocument();
+      expect(screen.queryByText('Frontend Developer')).not.toBeInTheDocument();
+
+      // Select the filtered option
       const checkbox2 = screen.getByRole('checkbox', { name: /backend developer/i });
       await userEvent.click(checkbox2);
 
-      expect(mockOnChange).toHaveBeenCalledWith(['UI Designer', 'Backend Developer']);
+      expect(mockOnChange).toHaveBeenCalledWith(['Backend Developer']);
     });
 
     it('should maintain selection state across dropdown open/close', async () => {

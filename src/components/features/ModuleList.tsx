@@ -16,7 +16,6 @@ interface ModuleListProps {
     designPerformers: string[];
     developmentPerformers: string[];
   }) => void;
-  modulesInTimeline?: string[]; // IDs of modules that fit in the timeline
   rates: RateConfig[];
   overlapDays?: number;
   currency?: '$' | '€';
@@ -24,7 +23,7 @@ interface ModuleListProps {
 
 type SortOption = 'default' | 'name' | 'price' | 'timeline';
 
-export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModule, modulesInTimeline, rates, overlapDays = Infinity, currency = '$' }: ModuleListProps) {
+export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModule, rates, overlapDays = Infinity, currency = '$' }: ModuleListProps) {
   const [sortBy, setSortBy] = useState<SortOption>('default');
   const [sortDesc, setSortDesc] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -200,8 +199,6 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModul
       <div className="space-y-2">
         {sortedModules.map((module) => {
           const isEnabled = module.isEnabled;
-          const fitsInTimeline = !modulesInTimeline || modulesInTimeline.includes(module.id);
-          const isExcluded = isEnabled && !fitsInTimeline;
           const modulePrice = calculateModulePrice(module, rates);
           const costPercentage = totalCost > 0 ? Math.round((modulePrice / totalCost) * 100) : 0;
 
@@ -210,9 +207,7 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModul
               key={module.id}
               onClick={() => onToggle(module.id)}
               className={`rounded-lg p-4 transition-all duration-300 hover:shadow-md cursor-pointer ${
-                isExcluded
-                  ? 'bg-red-50 border-2 border-red-300 opacity-100'
-                  : isEnabled
+                isEnabled
                   ? 'bg-gray-50 opacity-100'
                   : 'bg-gray-50 opacity-50'
               }`}
@@ -229,11 +224,6 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModul
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <h4 className="font-semibold text-gray-800">{module.name}</h4>
-                    {isExcluded && (
-                      <span className="px-2 py-0.5 text-xs font-medium bg-red-600 text-white rounded">
-                        ⚠️ Won't fit in timeline
-                      </span>
-                    )}
                     <span className="px-2 py-0.5 text-sm font-semibold bg-green-100 text-green-800 rounded ml-auto">
                       {currency}{modulePrice.toLocaleString()}
                       {isEnabled && totalCost > 0 && (

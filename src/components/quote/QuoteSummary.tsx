@@ -84,9 +84,7 @@ export default function QuoteSummary({
 
   // Calculate max possible overlap
   const totalDesign = enabledModules.reduce((sum, m) => sum + m.designDays, 0);
-  const totalFrontend = enabledModules.reduce((sum, m) => sum + m.frontendDays, 0);
-  const totalBackend = enabledModules.reduce((sum, m) => sum + m.backendDays, 0);
-  const totalDev = Math.max(totalFrontend, totalBackend);
+  const totalDev = enabledModules.reduce((sum, m) => sum + Math.max(m.frontendDays, m.backendDays), 0);
   const maxOverlap = Math.min(totalDesign, totalDev);
 
   // Determine overlap status
@@ -197,6 +195,138 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
     } catch (err) {
       console.error('Failed to copy markdown:', err);
     }
+  };
+
+  const handleSaveCalculations = () => {
+    const BUSINESS_DAYS_PER_MONTH = 20;
+
+    // Build detailed calculations
+    const moduleCalculations = enabledModules.map(module => {
+      const designPerformerDetails = module.designPerformers.map(performer => {
+        const rate = rates.find(r => r.role === performer);
+        const monthlyRate = rate?.monthlyRate || 0;
+        const dailyRate = monthlyRate / BUSINESS_DAYS_PER_MONTH;
+        const discount = rate?.discount || 0;
+        const discountedDailyRate = dailyRate * (1 - discount / 100);
+        const cost = discountedDailyRate * module.designDays;
+
+        return {
+          performer,
+          monthlyRate,
+          dailyRate: Math.round(dailyRate * 100) / 100,
+          discount: discount > 0 ? `${discount}%` : 'None',
+          discountedDailyRate: Math.round(discountedDailyRate * 100) / 100,
+          days: module.designDays,
+          cost: Math.round(cost * 100) / 100,
+          calculation: `${monthlyRate} / ${BUSINESS_DAYS_PER_MONTH} = ${Math.round(dailyRate * 100) / 100} per day${discount > 0 ? ` * ${1 - discount / 100} (discount)` : ''} * ${module.designDays} days = ${Math.round(cost * 100) / 100}`
+        };
+      });
+
+      const devDays = Math.max(module.frontendDays, module.backendDays);
+      const developmentPerformerDetails = module.developmentPerformers.map(performer => {
+        const rate = rates.find(r => r.role === performer);
+        const monthlyRate = rate?.monthlyRate || 0;
+        const dailyRate = monthlyRate / BUSINESS_DAYS_PER_MONTH;
+        const discount = rate?.discount || 0;
+        const discountedDailyRate = dailyRate * (1 - discount / 100);
+        const cost = discountedDailyRate * devDays;
+
+        return {
+          performer,
+          monthlyRate,
+          dailyRate: Math.round(dailyRate * 100) / 100,
+          discount: discount > 0 ? `${discount}%` : 'None',
+          discountedDailyRate: Math.round(discountedDailyRate * 100) / 100,
+          days: devDays,
+          note: `Max of frontend (${module.frontendDays}d) and backend (${module.backendDays}d)`,
+          cost: Math.round(cost * 100) / 100,
+          calculation: `${monthlyRate} / ${BUSINESS_DAYS_PER_MONTH} = ${Math.round(dailyRate * 100) / 100} per day${discount > 0 ? ` * ${1 - discount / 100} (discount)` : ''} * ${devDays} days = ${Math.round(cost * 100) / 100}`
+        };
+      });
+
+      const moduleTotalCost = [
+        ...designPerformerDetails,
+        ...developmentPerformerDetails
+      ].reduce((sum, p) => sum + p.cost, 0);
+
+      return {
+        name: module.name,
+        isEnabled: module.isEnabled,
+        effort: {
+          design: module.designDays,
+          frontend: module.frontendDays,
+          backend: module.backendDays,
+          developmentDaysUsed: devDays
+        },
+        designCalculations: designPerformerDetails,
+        developmentCalculations: developmentPerformerDetails,
+        moduleTotalCost: Math.round(moduleTotalCost * 100) / 100
+      };
+    });
+
+    const calculations = {
+      timestamp: new Date().toISOString(),
+      currency,
+      summary: {
+        totalQuote: Math.round(totalQuote * 100) / 100,
+        roundedTotal,
+        discountAmount: Math.round(discountAmount * 100) / 100,
+        finalTotal: Math.round(displayTotal * 100) / 100,
+        timeline: {
+          totalDays,
+          designDays,
+          developmentDays,
+          overlapDays: overlapDays === Infinity ? 'Full parallel' : overlapDays,
+          totalEffortDays: designDays + developmentDays
+        }
+      },
+      rates: rates.map(r => ({
+        role: r.role,
+        monthlyRate: r.monthlyRate,
+        dailyRate: Math.round((r.monthlyRate / BUSINESS_DAYS_PER_MONTH) * 100) / 100,
+        discount: r.discount || 0,
+        discountedDailyRate: Math.round((r.monthlyRate / BUSINESS_DAYS_PER_MONTH) * (1 - (r.discount || 0) / 100) * 100) / 100
+      })),
+      discounts: {
+        perPerformerDiscounts: ratesWithDiscounts.map(r => ({
+          role: r.role,
+          discount: `${r.discount}%`,
+          savings: Math.round((r.monthlyRate / BUSINESS_DAYS_PER_MONTH) * (r.discount || 0) / 100 * 100) / 100 + ' per day'
+        })),
+        totalRateDiscountAmount: hasRateDiscounts ? Math.round(rateDiscountAmount * 100) / 100 : 0,
+        projectDiscountAmount: Math.round(discountAmount * 100) / 100,
+        totalDiscounts: hasRateDiscounts ? Math.round((rateDiscountAmount + discountAmount) * 100) / 100 : Math.round(discountAmount * 100) / 100
+      },
+      costs: {
+        designCost: Math.round(designCost * 100) / 100,
+        developmentCost: Math.round(developmentCost * 100) / 100,
+        totalBeforeDiscounts: hasRateDiscounts ? Math.round(quoteWithoutRateDiscounts * 100) / 100 : Math.round(totalQuote * 100) / 100,
+        afterRateDiscounts: Math.round(totalQuote * 100) / 100,
+        afterProjectDiscount: Math.round(displayTotal * 100) / 100
+      },
+      modules: moduleCalculations,
+      disabledModules: disabledModules.map(m => ({
+        name: m.name,
+        effort: {
+          design: m.designDays,
+          frontend: m.frontendDays,
+          backend: m.backendDays
+        }
+      }))
+    };
+
+    // Create and download file
+    const blob = new Blob([JSON.stringify(calculations, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `quote-calculations-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setShowExportMenu(false);
   };
 
   return (
@@ -434,10 +564,22 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
                 </button>
                 <button
                   onClick={handleCopyMarkdownFull}
-                  className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                  className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100"
                 >
                   <div className="font-semibold text-gray-800">Full Details</div>
                   <div className="text-xs text-gray-600">Modules, timelines, prices & budgets</div>
+                </button>
+                <button
+                  onClick={handleSaveCalculations}
+                  className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                >
+                  <div className="font-semibold text-gray-800 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                    </svg>
+                    Save All Calculations
+                  </div>
+                  <div className="text-xs text-gray-600">Complete breakdown with all rates & costs</div>
                 </button>
               </div>
             )}

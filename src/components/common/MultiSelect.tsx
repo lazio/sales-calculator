@@ -55,7 +55,12 @@ export default function MultiSelect({
       {/* Trigger Button */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          if (isOpen) {
+            setSearchTerm(''); // Clear search when closing
+          }
+        }}
         className="w-full px-3 py-2 text-left bg-white border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all outline-none"
       >
         <div className="flex items-center justify-between">
