@@ -4,6 +4,8 @@ import {
   calculateModuleStats,
   calculateModulePrice,
   calculateModulePrices,
+  getPerformerType,
+  validateModulePerformers,
   BUSINESS_DAYS_PER_MONTH,
   TIMELINE_MIN_PERCENTAGE,
   TIMELINE_MAX_PERCENTAGE,
@@ -12,6 +14,140 @@ import { RateConfig } from '@/types/rates.types';
 import { ProjectModule } from '@/types/project.types';
 
 describe('calculationEngine', () => {
+  describe('getPerformerType', () => {
+    it('should identify frontend developers with various naming conventions', () => {
+      expect(getPerformerType('Frontend Developer')).toBe('frontend');
+      expect(getPerformerType('Front-end Developer')).toBe('frontend');
+      expect(getPerformerType('FE Engineer')).toBe('frontend');
+      expect(getPerformerType('frontend dev')).toBe('frontend');
+      expect(getPerformerType('FRONTEND DEVELOPER')).toBe('frontend');
+      expect(getPerformerType('Front End Developer')).toBe('frontend');
+    });
+
+    it('should identify backend developers with various naming conventions', () => {
+      expect(getPerformerType('Backend Developer')).toBe('backend');
+      expect(getPerformerType('Back-end Developer')).toBe('backend');
+      expect(getPerformerType('BE Engineer')).toBe('backend');
+      expect(getPerformerType('backend dev')).toBe('backend');
+      expect(getPerformerType('BACKEND DEVELOPER')).toBe('backend');
+      expect(getPerformerType('Back End Developer')).toBe('backend');
+    });
+
+    it('should identify other roles', () => {
+      expect(getPerformerType('QA Engineer')).toBe('other');
+      expect(getPerformerType('PM')).toBe('other');
+      expect(getPerformerType('Project Manager')).toBe('other');
+      expect(getPerformerType('UI Designer')).toBe('other');
+      expect(getPerformerType('DevOps Engineer')).toBe('other');
+    });
+  });
+
+  describe('validateModulePerformers', () => {
+    it('should not throw when frontend days exist and frontend performer is present', () => {
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Test Module',
+        designDays: 0,
+        frontendDays: 5,
+        backendDays: 0,
+        designPerformers: [],
+        developmentPerformers: ['Frontend Developer'],
+        isEnabled: true,
+      };
+      expect(() => validateModulePerformers(module)).not.toThrow();
+    });
+
+    it('should not throw when backend days exist and backend performer is present', () => {
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Test Module',
+        designDays: 0,
+        frontendDays: 0,
+        backendDays: 8,
+        designPerformers: [],
+        developmentPerformers: ['Backend Developer'],
+        isEnabled: true,
+      };
+      expect(() => validateModulePerformers(module)).not.toThrow();
+    });
+
+    it('should not throw when both frontend and backend performers are present', () => {
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Test Module',
+        designDays: 0,
+        frontendDays: 5,
+        backendDays: 8,
+        designPerformers: [],
+        developmentPerformers: ['Frontend Developer', 'Backend Developer', 'QA Engineer'],
+        isEnabled: true,
+      };
+      expect(() => validateModulePerformers(module)).not.toThrow();
+    });
+
+    it('should throw error when frontend days exist but no frontend performer', () => {
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Test Module',
+        designDays: 0,
+        frontendDays: 5,
+        backendDays: 0,
+        designPerformers: [],
+        developmentPerformers: ['Backend Developer', 'QA Engineer'],
+        isEnabled: true,
+      };
+      expect(() => validateModulePerformers(module)).toThrow(
+        'Module "Test Module" has 5 frontend days but no frontend developer assigned'
+      );
+    });
+
+    it('should throw error when backend days exist but no backend performer', () => {
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Test Module',
+        designDays: 0,
+        frontendDays: 0,
+        backendDays: 8,
+        designPerformers: [],
+        developmentPerformers: ['Frontend Developer', 'QA Engineer'],
+        isEnabled: true,
+      };
+      expect(() => validateModulePerformers(module)).toThrow(
+        'Module "Test Module" has 8 backend days but no backend developer assigned'
+      );
+    });
+
+    it('should throw error when there is a typo in performer name', () => {
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Typo Module',
+        designDays: 0,
+        frontendDays: 5,
+        backendDays: 0,
+        designPerformers: [],
+        developmentPerformers: ['Fronted Developer'], // Typo: "Fronted" instead of "Frontend"
+        isEnabled: true,
+      };
+      expect(() => validateModulePerformers(module)).toThrow(
+        'Module "Typo Module" has 5 frontend days but no frontend developer assigned'
+      );
+    });
+
+    it('should not throw when days are 0 even if no matching performers', () => {
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'No Dev Module',
+        designDays: 3,
+        frontendDays: 0,
+        backendDays: 0,
+        designPerformers: ['UI Designer'],
+        developmentPerformers: [],
+        isEnabled: true,
+      };
+      expect(() => validateModulePerformers(module)).not.toThrow();
+    });
+  });
+
   // Mock team with monthly rates totaling $23,000/month
   // Individual daily rates:
   // - UI Designer: $4,000/month = $200/day
@@ -110,9 +246,9 @@ describe('calculationEngine', () => {
       const price = calculateModulePrice(module, mockRates);
 
       // Design: UI Designer ($200/day) × 3 days = $600
-      // Development: (Frontend $250 + Backend $250) × MAX(5,8)=8 days = $4000
-      // Total: $600 + $4000 = $4600
-      expect(price).toBe(4600);
+      // Development: Frontend ($250 × 5 days) + Backend ($250 × 8 days) = $1250 + $2000 = $3250
+      // Total: $600 + $3250 = $3850
+      expect(price).toBe(3850);
     });
 
     it('should handle frontend-heavy modules', () => {
@@ -120,9 +256,9 @@ describe('calculationEngine', () => {
       const price = calculateModulePrice(module, mockRates);
 
       // Design: UI Designer ($200/day) × 4 days = $800
-      // Development: (Frontend $250 + Backend $250) × MAX(10,6)=10 days = $5000
-      // Total: $800 + $5000 = $5800
-      expect(price).toBe(5800);
+      // Development: Frontend ($250 × 10 days) + Backend ($250 × 6 days) = $2500 + $1500 = $4000
+      // Total: $800 + $4000 = $4800
+      expect(price).toBe(4800);
     });
   });
 
@@ -133,17 +269,17 @@ describe('calculationEngine', () => {
       expect(prices).toHaveLength(3);
       expect(prices[0]).toEqual({
         moduleId: 'module-1',
-        price: 4600, // $600 design + $4000 dev
+        price: 3850, // $600 design + ($1250 FE + $2000 BE) dev
         timelineDays: 8, // MAX(3,5,8)
       });
       expect(prices[1]).toEqual({
         moduleId: 'module-2',
-        price: 5800, // $800 design + $5000 dev
+        price: 4800, // $800 design + ($2500 FE + $1500 BE) dev
         timelineDays: 10, // MAX(4,10,6)
       });
       expect(prices[2]).toEqual({
         moduleId: 'module-3',
-        price: 4900, // $400 design + $4500 dev
+        price: 4400, // $400 design + ($1750 FE + $2250 BE) dev
         timelineDays: 9, // MAX(2,7,9)
       });
     });
@@ -160,7 +296,7 @@ describe('calculationEngine', () => {
 
       // Verify development is separate
       expect(quote.developmentDays).toBe(18); // MAX(5,8)=8 + MAX(10,6)=10
-      expect(quote.developmentCost).toBe(9000); // (FE + BE) @ $500/day × 18 days
+      expect(quote.developmentCost).toBe(7250); // Module 1: (FE $250×5 + BE $250×8) + Module 2: (FE $250×10 + BE $250×6)
     });
 
     it('should handle modules with no design performers', () => {
@@ -190,7 +326,7 @@ describe('calculationEngine', () => {
         frontendDays: 5,
         backendDays: 5,
         designPerformers: ['Unknown Designer'], // Not in rates
-        developmentPerformers: ['Frontend Developer'],
+        developmentPerformers: ['Frontend Developer', 'Backend Developer'],
         isEnabled: true,
       };
 
@@ -209,17 +345,17 @@ describe('calculationEngine', () => {
       const totalMonthlyRate = 23000; // Sum of all monthly rates
       const timelineDays = 18; // design=7 + dev=18 - overlap=7 = 18 days
 
-      // Module 1: Design $600 + Dev $4000 = $4600
-      // Module 2: Design $800 + Dev $5000 = $5800
-      // Total: $4600 + $5800 = $10,400
-      const expectedTotal = 10400;
+      // Module 1: Design $600 + Dev (FE $1250 + BE $2000) = $3850
+      // Module 2: Design $800 + Dev (FE $2500 + BE $1500) = $4800
+      // Total: $3850 + $4800 = $8650
+      const expectedTotal = 8650;
 
       expect(quote.monthlyFee).toBe(totalMonthlyRate); // Reference rate card
       expect(quote.totalDays).toBe(timelineDays);
       expect(quote.designDays).toBe(7); // 3 + 4
       expect(quote.developmentDays).toBe(18); // 8 + 10
       expect(quote.designCost).toBe(1400); // $600 + $800
-      expect(quote.developmentCost).toBe(9000); // $4000 + $5000
+      expect(quote.developmentCost).toBe(7250); // $3250 + $4000
       expect(quote.productPrice).toBe(expectedTotal); // Same as totalQuote
       expect(quote.totalQuote).toBe(expectedTotal);
       expect(quote.discountAmount).toBe(0);
@@ -231,12 +367,12 @@ describe('calculationEngine', () => {
       const discount = 10; // 10% discount
       const quote = calculateQuote(mockRates, mockModules, discount);
 
-      const totalQuote = 10400; // $4600 + $5800
-      const discountAmount = Math.round((totalQuote * discount) / 100); // $1,040 (10%)
+      const totalQuote = 8650; // $3850 + $4800
+      const discountAmount = Math.round((totalQuote * discount) / 100); // $865 (10%)
 
-      expect(quote.totalQuote).toBe(totalQuote); // $10,400 before discount
-      expect(quote.discountAmount).toBe(discountAmount); // $1,040
-      expect(quote.finalTotal).toBe(totalQuote - discountAmount); // $9,360 after discount
+      expect(quote.totalQuote).toBe(totalQuote); // $8650 before discount
+      expect(quote.discountAmount).toBe(discountAmount); // $865
+      expect(quote.finalTotal).toBe(totalQuote - discountAmount); // $7785 after discount
     });
 
 
@@ -279,7 +415,7 @@ describe('calculationEngine', () => {
       // Design: 7 days, Dev: 18 days
       // Sequential: 7 + 18 - 0 = 25 days
       expect(quote.totalDays).toBe(25);
-      expect(quote.totalQuote).toBe(10400); // Cost doesn't change
+      expect(quote.totalQuote).toBe(8650); // Cost doesn't change
     });
 
     it('should calculate timeline with partial overlap (1 month / 20 days)', () => {
@@ -301,7 +437,7 @@ describe('calculationEngine', () => {
       // Design: 7 days, Dev: 18 days
       // Timeline: 7 + 18 - 5 = 20 days
       expect(quote.totalDays).toBe(20);
-      expect(quote.totalQuote).toBe(10400); // Cost unchanged
+      expect(quote.totalQuote).toBe(8650); // Cost unchanged
     });
 
     it('should calculate timeline with 10 days overlap (2 weeks)', () => {
@@ -391,7 +527,7 @@ describe('calculationEngine', () => {
 
       // Design: 7 days (less than 1 month), so fully parallel
       expect(quote.totalDays).toBe(18);
-      expect(quote.totalQuote).toBe(10400);
+      expect(quote.totalQuote).toBe(8650);
     });
 
     it('should handle enterprise project with 2-week sprints', () => {
@@ -400,7 +536,7 @@ describe('calculationEngine', () => {
       const discount = 10; // Enterprise discount
       const quote = calculateQuote(mockRates, mockModules, discount, overlapDays);
 
-      expect(quote.finalTotal).toBe(9360); // $10,400 - 10%
+      expect(quote.finalTotal).toBe(7785); // $8650 - 10% = $7785
     });
   });
 
@@ -452,8 +588,8 @@ describe('calculationEngine', () => {
     it('should handle very large discount (100%)', () => {
       const quote = calculateQuote(mockRates, mockModules, 100);
 
-      expect(quote.totalQuote).toBe(10400); // Original price
-      expect(quote.discountAmount).toBe(10400); // Full discount
+      expect(quote.totalQuote).toBe(8650); // Original price
+      expect(quote.discountAmount).toBe(8650); // Full discount
       expect(quote.finalTotal).toBe(0); // Free!
     });
 
@@ -472,12 +608,12 @@ describe('calculationEngine', () => {
       const quote = calculateQuote(mockRates, [asymmetricModule]);
 
       // Design: 5 days * $200 = $1000
-      // Development: Both performers work for MAX(40, 5) = 40 days
+      // Development: Frontend works their specific days, Backend works their specific days
       // Frontend Dev: 40 days * $250 = $10,000
-      // Backend Dev: 40 days * $250 = $10,000 (works full duration even though backend is only 5 days)
-      // Total: $1000 + $20,000 = $21,000
+      // Backend Dev: 5 days * $250 = $1,250 (only works backend days)
+      // Total: $1000 + $10,000 + $1,250 = $12,250
       expect(quote.designCost).toBe(1000);
-      expect(quote.totalQuote).toBe(21000);
+      expect(quote.totalQuote).toBe(12250);
       expect(quote.totalDays).toBe(40); // MAX(5, 40, 5)
     });
 
@@ -561,7 +697,7 @@ describe('calculationEngine', () => {
         frontendDays: 1,
         backendDays: 1,
         designPerformers: ['UI Designer'],
-        developmentPerformers: ['Frontend Developer'],
+        developmentPerformers: ['Frontend Developer', 'Backend Developer'],
         isEnabled: true,
       };
 
@@ -569,8 +705,9 @@ describe('calculationEngine', () => {
 
       // Design: 1 day * $200 = $200
       // Frontend: 1 day * $250 = $250
-      // Total: $450
-      expect(quote.totalQuote).toBe(450);
+      // Backend: 1 day * $250 = $250
+      // Total: $700
+      expect(quote.totalQuote).toBe(700);
       expect(quote.totalDays).toBe(1);
     });
   });
@@ -716,7 +853,7 @@ describe('calculationEngine', () => {
     it('should apply per-performer discount to both design and development costs', () => {
       // Same performer appears in both design and development
       const ratesWithDiscount: RateConfig[] = [
-        { role: 'Full Stack Developer', monthlyRate: 6000, discount: 25 },
+        { role: 'Frontend Full Stack Developer', monthlyRate: 6000, discount: 25 },
       ];
 
       const module: ProjectModule = {
@@ -725,17 +862,17 @@ describe('calculationEngine', () => {
         designDays: 4,
         frontendDays: 8,
         backendDays: 0,
-        designPerformers: ['Full Stack Developer'],
-        developmentPerformers: ['Full Stack Developer'],
+        designPerformers: ['Frontend Full Stack Developer'],
+        developmentPerformers: ['Frontend Full Stack Developer'],
         isEnabled: true,
       };
 
       const quote = calculateQuote(ratesWithDiscount, [module]);
 
-      // Full Stack: $6000/month = $300/day
+      // Frontend Full Stack: $6000/month = $300/day
       // With 25% discount: $300 * 0.75 = $225/day
       // Design: 4 days * $225 = $900
-      // Development: 8 days * $225 = $1800
+      // Development: 8 days * $225 = $1800 (uses frontendDays since performer is frontend)
       // Total: $900 + $1800 = $2700
       expect(quote.designCost).toBe(900);
       expect(quote.developmentCost).toBe(1800);

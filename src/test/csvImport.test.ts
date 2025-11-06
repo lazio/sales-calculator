@@ -180,12 +180,12 @@ describe('CSV Import Edge Cases', () => {
   });
 
   describe('Empty or no performers', () => {
-    it('should accept module with empty performer fields', () => {
+    it('should accept module with empty performer fields when days are 0', () => {
       const validRow: CSVRow = {
         Module: 'Mystery Module',
-        'Design (days)': '5',
-        'Front-end (days)': '8',
-        'Back-end (days)': '10',
+        'Design (days)': '0',
+        'Front-end (days)': '0',
+        'Back-end (days)': '0',
         'Design Performers': '',
         'Development Performers': '',
       };
@@ -195,6 +195,9 @@ describe('CSV Import Edge Cases', () => {
 
       expect(module.designPerformers).toEqual([]);
       expect(module.developmentPerformers).toEqual([]);
+      expect(module.designDays).toBe(0);
+      expect(module.frontendDays).toBe(0);
+      expect(module.backendDays).toBe(0);
     });
 
     it('should trim whitespace from performer names', () => {
@@ -221,14 +224,14 @@ describe('CSV Import Edge Cases', () => {
         'Front-end (days)': '8',
         'Back-end (days)': '10',
         'Design Performers': 'UI Designer,,UX Designer,',
-        'Development Performers': ',Frontend Dev,',
+        'Development Performers': ',Frontend Dev,,Backend Dev,',
       };
 
       const validated = validateCSVRow(validRow, 0);
       const module = csvRowToModule(validated, 0);
 
       expect(module.designPerformers).toEqual(['UI Designer', 'UX Designer']);
-      expect(module.developmentPerformers).toEqual(['Frontend Dev']);
+      expect(module.developmentPerformers).toEqual(['Frontend Dev', 'Backend Dev']);
     });
   });
 
@@ -349,7 +352,7 @@ describe('CSV Import Edge Cases', () => {
         'Front-end (days)': '1000',
         'Back-end (days)': '1000',
         'Design Performers': 'UI Designer',
-        'Development Performers': 'Frontend Developer',
+        'Development Performers': 'Frontend Developer, Backend Developer',
       };
 
       const validated = validateCSVRow(validRow, 0);
@@ -398,7 +401,7 @@ describe('CSV Import Edge Cases', () => {
         'Front-end (days)': '8',
         'Back-end (days)': '10',
         'Design Performers': 'UI Designer',
-        'Development Performers': 'Frontend Developer',
+        'Development Performers': 'Frontend Developer, Backend Developer',
       };
 
       const validated = validateCSVRow(validRow, 0);
@@ -414,7 +417,7 @@ describe('CSV Import Edge Cases', () => {
         'Front-end (days)': '8.75',
         'Back-end (days)': '10',
         'Design Performers': 'UI Designer',
-        'Development Performers': 'Frontend Developer',
+        'Development Performers': 'Frontend Developer, Backend Developer',
       };
 
       const validated = validateCSVRow(validRow, 0);
@@ -430,7 +433,7 @@ describe('CSV Import Edge Cases', () => {
         'Front-end (days)': '8',
         'Back-end (days)': '10.25',
         'Design Performers': 'UI Designer',
-        'Development Performers': 'Backend Developer',
+        'Development Performers': 'Frontend Developer, Backend Developer',
       };
 
       const validated = validateCSVRow(validRow, 0);
@@ -466,7 +469,7 @@ describe('CSV Import Edge Cases', () => {
         'Front-end (days)': '15',
         'Back-end (days)': '12',
         'Design Performers': 'UI Designer',
-        'Development Performers': 'Frontend Developer',
+        'Development Performers': 'Frontend Developer, Backend Developer',
       };
 
       const validated = validateCSVRow(validRow, 0);
@@ -499,7 +502,7 @@ describe('CSV Import Edge Cases', () => {
         'Front-end (days)': '8',
         'Back-end (days)': '10',
         'Design Performers': 'UI Designer',
-        'Development Performers': 'Frontend Developer',
+        'Development Performers': 'Frontend Developer, Backend Developer',
       };
 
       const validated = validateCSVRow(validRow, 0);

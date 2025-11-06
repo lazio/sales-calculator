@@ -504,6 +504,8 @@ describe('Integration Tests', () => {
   describe('Module Statistics Integration', () => {
     const mockRates: RateConfig[] = [
       { role: 'UI Designer', monthlyRate: 4000 },
+      { role: 'Frontend Developer', monthlyRate: 5000 },
+      { role: 'Backend Developer', monthlyRate: 5000 },
     ];
 
     const mockModules: ProjectModule[] = [
@@ -514,7 +516,7 @@ describe('Integration Tests', () => {
         frontendDays: 10,
         backendDays: 8,
         designPerformers: ['UI Designer'],
-        developmentPerformers: [],
+        developmentPerformers: ['Frontend Developer', 'Backend Developer'],
         isEnabled: true,
       },
       {
@@ -534,7 +536,7 @@ describe('Integration Tests', () => {
         frontendDays: 100,
         backendDays: 100,
         designPerformers: ['UI Designer'],
-        developmentPerformers: [],
+        developmentPerformers: ['Frontend Developer', 'Backend Developer'],
         isEnabled: false,
       },
     ];

@@ -1,5 +1,6 @@
 import { RateConfig } from '@/types/rates.types';
 import { ProjectModule, CSVRow } from '@/types/project.types';
+import { validateModulePerformers } from '@/services/calculationEngine';
 
 /**
  * Validation errors
@@ -120,6 +121,9 @@ export function validateProjectModule(module: unknown): ProjectModule {
   if (!module.name.trim()) {
     throw new ValidationError('Module name cannot be empty');
   }
+
+  // Validate that required performers exist for frontend/backend work
+  validateModulePerformers(module);
 
   return module;
 }

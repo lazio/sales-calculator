@@ -1,5 +1,6 @@
 import { RateConfig } from '@/types/rates.types';
 import { ProjectModule } from '@/types/project.types';
+import { ValidationError } from '@/utils/validation';
 
 // Constants
 export const BUSINESS_DAYS_PER_MONTH = 20;
@@ -38,6 +39,58 @@ export interface ModulePriceCalculation {
   moduleId: string;
   price: number;
   timelineDays: number;
+}
+
+/**
+ * Determine the type of performer based on their name
+ * @param performerName - The name of the performer
+ * @returns 'frontend' | 'backend' | 'other'
+ */
+export function getPerformerType(performerName: string): 'frontend' | 'backend' | 'other' {
+  const normalized = performerName.toLowerCase();
+
+  // Check for frontend variations (case-insensitive)
+  // Use word boundaries to avoid matching "fronted" as "frontend"
+  if (normalized.includes('front-end') || normalized.includes('frontend') ||
+      normalized.match(/\bfe\b/) || normalized.match(/\bfront\b/)) {
+    return 'frontend';
+  }
+
+  // Check for backend variations (case-insensitive)
+  if (normalized.includes('back-end') || normalized.includes('backend') ||
+      normalized.match(/\bbe\b/) || normalized.match(/\bback\b/)) {
+    return 'backend';
+  }
+
+  return 'other';
+}
+
+/**
+ * Validate that required performers exist for a module
+ * Throws ValidationError if frontend/backend days exist but no matching performer is found
+ * @param module - The module to validate
+ */
+export function validateModulePerformers(module: ProjectModule): void {
+  const performerTypes = module.developmentPerformers.map(p => getPerformerType(p));
+
+  const hasFrontendPerformer = performerTypes.includes('frontend');
+  const hasBackendPerformer = performerTypes.includes('backend');
+
+  // Check if frontend days exist but no frontend performer
+  if (module.frontendDays > 0 && !hasFrontendPerformer) {
+    throw new ValidationError(
+      `Module "${module.name}" has ${module.frontendDays} frontend days but no frontend developer assigned. ` +
+      `Check for typos in performer names (expected: "Frontend", "Front-end", "FE", etc.)`
+    );
+  }
+
+  // Check if backend days exist but no backend performer
+  if (module.backendDays > 0 && !hasBackendPerformer) {
+    throw new ValidationError(
+      `Module "${module.name}" has ${module.backendDays} backend days but no backend developer assigned. ` +
+      `Check for typos in performer names (expected: "Backend", "Back-end", "BE", etc.)`
+    );
+  }
 }
 
 /**
@@ -99,8 +152,20 @@ export function calculateQuote(
   // Calculate development cost
   let developmentCost = 0;
   for (const module of enabledModules) {
-    const devDays = Math.max(module.frontendDays, module.backendDays);
+    // Calculate cost based on performer type
     for (const performer of module.developmentPerformers) {
+      const performerType = getPerformerType(performer);
+      let devDays: number;
+
+      if (performerType === 'frontend') {
+        devDays = module.frontendDays;
+      } else if (performerType === 'backend') {
+        devDays = module.backendDays;
+      } else {
+        // QA, PM, and other roles work for the full development duration
+        devDays = Math.max(module.frontendDays, module.backendDays);
+      }
+
       developmentCost += getDailyRate(performer) * devDays;
     }
   }
@@ -197,9 +262,20 @@ export function calculateModulePrice(
   }
 
   // Calculate development cost
-  const devDays = Math.max(module.frontendDays, module.backendDays);
   let developmentCost = 0;
   for (const performer of module.developmentPerformers) {
+    const performerType = getPerformerType(performer);
+    let devDays: number;
+
+    if (performerType === 'frontend') {
+      devDays = module.frontendDays;
+    } else if (performerType === 'backend') {
+      devDays = module.backendDays;
+    } else {
+      // QA, PM, and other roles work for the full development duration
+      devDays = Math.max(module.frontendDays, module.backendDays);
+    }
+
     developmentCost += getDailyRate(performer) * devDays;
   }
 

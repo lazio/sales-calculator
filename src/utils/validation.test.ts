@@ -168,7 +168,7 @@ describe('validation', () => {
         frontendDays: 5,
         backendDays: 10,
         designPerformers: ['UI Designer'],
-        developmentPerformers: ['Dev1'],
+        developmentPerformers: ['Frontend Developer', 'Backend Developer'],
         isEnabled: true,
       };
       expect(validateProjectModule(module)).toEqual(module);
@@ -274,7 +274,7 @@ describe('validation', () => {
         'Front-end (days)': '5',
         'Back-end (days)': '10',
         'Design Performers': 'UI Designer',
-        'Development Performers': 'Dev1, Dev2',
+        'Development Performers': 'Frontend Developer, Backend Developer',
       };
       const module = csvRowToModule(row, 0);
 
@@ -285,7 +285,7 @@ describe('validation', () => {
         frontendDays: 5,
         backendDays: 10,
         designPerformers: ['UI Designer'],
-        developmentPerformers: ['Dev1', 'Dev2'],
+        developmentPerformers: ['Frontend Developer', 'Backend Developer'],
         isEnabled: true,
       });
     });
@@ -297,12 +297,12 @@ describe('validation', () => {
         'Front-end (days)': '3',
         'Back-end (days)': '4',
         'Design Performers': 'UI Designer, UX Designer, Graphic Designer',
-        'Development Performers': 'Frontend Developer',
+        'Development Performers': 'Frontend Developer, Backend Developer',
       };
       const module = csvRowToModule(row, 0);
 
       expect(module.designPerformers).toEqual(['UI Designer', 'UX Designer', 'Graphic Designer']);
-      expect(module.developmentPerformers).toEqual(['Frontend Developer']);
+      expect(module.developmentPerformers).toEqual(['Frontend Developer', 'Backend Developer']);
     });
 
     it('should parse complex development team', () => {
@@ -331,7 +331,7 @@ describe('validation', () => {
         'Front-end (days)': '7.5',
         'Back-end (days)': '12.25',
         'Design Performers': 'UI Designer',
-        'Development Performers': 'Dev1',
+        'Development Performers': 'Frontend Developer, Backend Developer',
       };
       const module = csvRowToModule(row, 1);
 
@@ -372,21 +372,21 @@ describe('validation', () => {
         'Front-end (days)': '5',
         'Back-end (days)': '10',
         'Design Performers': ' UI Designer ',
-        'Development Performers': ' Dev1 , Dev2 ',
+        'Development Performers': ' Frontend Developer , Backend Developer ',
       };
       const module = csvRowToModule(row, 0);
 
       expect(module.name).toBe('Authentication');
       expect(module.designPerformers).toEqual(['UI Designer']);
-      expect(module.developmentPerformers).toEqual(['Dev1', 'Dev2']);
+      expect(module.developmentPerformers).toEqual(['Frontend Developer', 'Backend Developer']);
     });
 
-    it('should handle empty performers', () => {
+    it('should handle empty performers when days are 0', () => {
       const row = {
         Module: 'Feature',
-        'Design (days)': '3',
-        'Front-end (days)': '5',
-        'Back-end (days)': '10',
+        'Design (days)': '0',
+        'Front-end (days)': '0',
+        'Back-end (days)': '0',
         'Design Performers': '',
         'Development Performers': '',
       };
@@ -394,6 +394,9 @@ describe('validation', () => {
 
       expect(module.designPerformers).toEqual([]);
       expect(module.developmentPerformers).toEqual([]);
+      expect(module.designDays).toBe(0);
+      expect(module.frontendDays).toBe(0);
+      expect(module.backendDays).toBe(0);
     });
   });
 
