@@ -25,6 +25,8 @@ export default function RateConfiguration({
     return stored !== null ? JSON.parse(stored) : false;
   });
   const [showDiscountForIndex, setShowDiscountForIndex] = useState<number | null>(null);
+  // Track local input values to allow empty state during typing
+  const [localValues, setLocalValues] = useState<Record<number, string>>({});
 
   // Persist editable mode to localStorage
   useEffect(() => {
@@ -109,9 +111,21 @@ export default function RateConfiguration({
                         type="number"
                         min="0"
                         step="100"
-                        value={rate.monthlyRate || ''}
+                        value={localValues[index] !== undefined ? localValues[index] : rate.monthlyRate}
                         onChange={(e) => {
                           const value = e.target.value;
+                          // Store local value to allow empty field during typing
+                          setLocalValues(prev => ({ ...prev, [index]: value }));
+                        }}
+                        onBlur={(e) => {
+                          const value = e.target.value;
+                          // Clear local state and sync to parent
+                          setLocalValues(prev => {
+                            const newValues = { ...prev };
+                            delete newValues[index];
+                            return newValues;
+                          });
+                          // Set to 0 if empty, otherwise use the number value
                           onRateChange(index, value === '' ? 0 : Number(value));
                         }}
                         className="w-full pl-8 pr-4 py-2 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-150 outline-none font-semibold text-gray-900 bg-white"
@@ -176,7 +190,7 @@ export default function RateConfiguration({
                 {isEditable && onRateDelete && (
                   <button
                     onClick={() => handleDelete(index)}
-                    className={`mt-6 p-1.5 rounded-lg transition-all duration-150 ${
+                    className={`mt-8 p-1.5 rounded-lg transition-all duration-150 ${
                       deleteConfirm === index
                         ? 'bg-red-600 text-white hover:bg-red-700'
                         : 'text-red-600 hover:bg-red-50'

@@ -95,6 +95,11 @@ describe('validation', () => {
       const config = { role: '   ', monthlyRate: 5000 };
       expect(() => validateRateConfig(config)).toThrow('Role name cannot be empty');
     });
+
+    it('should allow zero monthly rate', () => {
+      const config = { role: 'Volunteer', monthlyRate: 0 };
+      expect(validateRateConfig(config)).toEqual(config);
+    });
   });
 
   describe('validateRateConfigs', () => {

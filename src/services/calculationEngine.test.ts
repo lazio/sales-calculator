@@ -971,5 +971,57 @@ describe('calculationEngine', () => {
       expect(quote.developmentCost).toBe(4500);
       expect(quote.totalQuote).toBe(6000);
     });
+
+    it('should handle zero monthly rate (free/volunteer performers)', () => {
+      const ratesWithZero: RateConfig[] = [
+        { role: 'UI Designer', monthlyRate: 4000 },
+        { role: 'Volunteer Developer', monthlyRate: 0 }, // Free!
+      ];
+
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Community Project',
+        designDays: 5,
+        frontendDays: 10,
+        backendDays: 0,
+        designPerformers: ['UI Designer'],
+        developmentPerformers: ['Volunteer Developer'],
+        isEnabled: true,
+      };
+
+      const quote = calculateQuote(ratesWithZero, [module]);
+
+      // Design: 5 days * $200/day = $1000
+      // Development: 10 days * $0/day = $0
+      // Total: $1000
+      expect(quote.designCost).toBe(1000);
+      expect(quote.developmentCost).toBe(0);
+      expect(quote.totalQuote).toBe(1000);
+    });
+
+    it('should handle all performers with zero rate', () => {
+      const allFreeRates: RateConfig[] = [
+        { role: 'Volunteer Designer', monthlyRate: 0 },
+        { role: 'Volunteer Frontend Dev', monthlyRate: 0 },
+      ];
+
+      const module: ProjectModule = {
+        id: 'test',
+        name: 'Open Source Project',
+        designDays: 10,
+        frontendDays: 20,
+        backendDays: 0,
+        designPerformers: ['Volunteer Designer'],
+        developmentPerformers: ['Volunteer Frontend Dev'],
+        isEnabled: true,
+      };
+
+      const quote = calculateQuote(allFreeRates, [module]);
+
+      // All free = $0
+      expect(quote.designCost).toBe(0);
+      expect(quote.developmentCost).toBe(0);
+      expect(quote.totalQuote).toBe(0);
+    });
   });
 });
