@@ -16,8 +16,30 @@ import { useQuoteCalculation } from '@/hooks/useQuoteCalculation';
 import { getMissingPerformers, extractUniquePerformers } from '@/utils/performers';
 
 function App() {
-  // Use custom hook for localStorage management
-  const [rates, setRates] = useLocalStorage<RateConfig[]>(STORAGE_KEY, DEFAULT_RATES);
+  // Use custom hook for localStorage management (rates without discounts)
+  const [storedRates, setStoredRates] = useLocalStorage<RateConfig[]>(STORAGE_KEY, DEFAULT_RATES);
+
+  // State for in-memory discounts (not persisted)
+  const [rateDiscounts, setRateDiscounts] = useState<Record<string, number>>({});
+
+  // Combine stored rates with in-memory discounts
+  const rates = useMemo(() => {
+    return storedRates.map(rate => ({
+      ...rate,
+      discount: rateDiscounts[rate.role] || 0
+    }));
+  }, [storedRates, rateDiscounts]);
+
+  // Setter that strips discounts before saving
+  const setRates = (newRates: RateConfig[] | ((prev: RateConfig[]) => RateConfig[])) => {
+    const ratesToSave = typeof newRates === 'function'
+      ? newRates(rates)
+      : newRates;
+
+    // Remove discount property before saving to localStorage
+    const ratesWithoutDiscounts = ratesToSave.map(({ discount, ...rate }) => rate);
+    setStoredRates(ratesWithoutDiscounts);
+  };
 
   // Project modules from CSV
   const [modules, setModules] = useState<ProjectModule[]>([]);
@@ -110,13 +132,11 @@ function App() {
     const roleToUpdate = visibleRates[index]?.role;
     if (!roleToUpdate) return;
 
-    // Find and update the discount in the full rates array
-    const updatedRates = rates.map(rate =>
-      rate.role === roleToUpdate
-        ? { ...rate, discount }
-        : rate
-    );
-    setRates(updatedRates);
+    // Update in-memory discount state (not persisted to localStorage)
+    setRateDiscounts(prev => ({
+      ...prev,
+      [roleToUpdate]: discount
+    }));
   };
 
   const handleCSVImport = (importedModules: ProjectModule[]) => {
