@@ -130,9 +130,13 @@ export function calculateQuote(
   // All modules work in parallel, design and dev overlap based on overlapDays
   const totalDesignDays = enabledModules.reduce((sum, m) => sum + m.designDays, 0);
 
-  // Development days represents effort per performer (sum of MAX per module)
-  // This is what each development performer bills for and the actual dev timeline
-  const totalDevelopmentDays = enabledModules.reduce((sum, m) => sum + Math.max(m.frontendDays, m.backendDays), 0);
+  // Calculate total frontend and backend days
+  const totalFrontendDays = enabledModules.reduce((sum, m) => sum + m.frontendDays, 0);
+  const totalBackendDays = enabledModules.reduce((sum, m) => sum + m.backendDays, 0);
+
+  // Development days = MAX of total frontend and total backend
+  // (since frontend and backend teams work in parallel)
+  const totalDevelopmentDays = Math.max(totalFrontendDays, totalBackendDays);
 
   // Calculate actual overlap (can't overlap more than design days or dev days)
   const actualOverlap = Math.min(overlapDays, totalDesignDays, totalDevelopmentDays);
@@ -219,7 +223,13 @@ export function calculateModuleStats(modules: ProjectModule[], overlapDays: numb
 
   // Timeline: all modules work in parallel, design and dev overlap based on overlapDays
   const totalDesign = enabledModules.reduce((sum, m) => sum + m.designDays, 0);
-  const totalDevDays = enabledModules.reduce((sum, m) => sum + Math.max(m.frontendDays, m.backendDays), 0);
+
+  // Calculate total frontend and backend days
+  const totalFrontendDays = enabledModules.reduce((sum, m) => sum + m.frontendDays, 0);
+  const totalBackendDays = enabledModules.reduce((sum, m) => sum + m.backendDays, 0);
+
+  // Development days = MAX of total frontend and total backend (teams work in parallel)
+  const totalDevDays = Math.max(totalFrontendDays, totalBackendDays);
 
   // Calculate actual overlap
   const actualOverlap = Math.min(overlapDays, totalDesign, totalDevDays);

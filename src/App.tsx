@@ -9,40 +9,24 @@ import ModuleList from '@/components/features/ModuleList';
 import WorkOverlapSlider from '@/components/overlap/WorkOverlapSlider';
 import DiscountInput from '@/components/discount/DiscountInput';
 import CollapsibleSection from '@/components/common/CollapsibleSection';
-import { DEFAULT_RATES, RateConfig, STORAGE_KEY } from '@/types/rates.types';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
+import { CSVImportErrorFallback, RateConfigErrorFallback, CalculationErrorFallback } from '@/components/common/ErrorFallback';
+import { DEFAULT_RATES } from '@/types/rates.types';
 import { ProjectModule } from '@/types/project.types';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useQuoteCalculation } from '@/hooks/useQuoteCalculation';
-import { getMissingPerformers, extractUniquePerformers } from '@/utils/performers';
+import { useRateManagement } from '@/hooks/useRateManagement';
+import { useModuleManagement } from '@/hooks/useModuleManagement';
+import { extractUniquePerformers } from '@/utils/performers';
 
 function App() {
-  // Use custom hook for localStorage management (rates without discounts)
-  const [storedRates, setStoredRates] = useLocalStorage<RateConfig[]>(STORAGE_KEY, DEFAULT_RATES);
+  // Use custom hooks for state management
+  const { rates, updateRate, updateDiscount, deleteRate, addRates } = useRateManagement(DEFAULT_RATES);
 
-  // State for in-memory discounts (not persisted)
-  const [rateDiscounts, setRateDiscounts] = useState<Record<string, number>>({});
-
-  // Combine stored rates with in-memory discounts
-  const rates = useMemo(() => {
-    return storedRates.map(rate => ({
-      ...rate,
-      discount: rateDiscounts[rate.role] || 0
-    }));
-  }, [storedRates, rateDiscounts]);
-
-  // Setter that strips discounts before saving
-  const setRates = (newRates: RateConfig[] | ((prev: RateConfig[]) => RateConfig[])) => {
-    const ratesToSave = typeof newRates === 'function'
-      ? newRates(rates)
-      : newRates;
-
-    // Remove discount property before saving to localStorage
-    const ratesWithoutDiscounts = ratesToSave.map(({ discount, ...rate }) => rate);
-    setStoredRates(ratesWithoutDiscounts);
-  };
-
-  // Project modules from CSV
-  const [modules, setModules] = useState<ProjectModule[]>([]);
+  const { modules, toggleModule, bulkToggle, addModule, importModules } = useModuleManagement({
+    onRatesAdded: addRates,
+    existingRoles: rates.map(r => r.role)
+  });
 
   // Work overlap (in days) - default: 1 month (20 business days) after design starts
   const [workOverlap, setWorkOverlap] = useState<number>(20);
@@ -108,13 +92,7 @@ function App() {
     const roleToUpdate = visibleRates[index]?.role;
     if (!roleToUpdate) return;
 
-    // Find and update the rate in the full rates array
-    const updatedRates = rates.map(rate =>
-      rate.role === roleToUpdate
-        ? { ...rate, monthlyRate: newRate }
-        : rate
-    );
-    setRates(updatedRates);
+    updateRate(roleToUpdate, newRate);
   };
 
   const handleRateDelete = (index: number) => {
@@ -122,9 +100,7 @@ function App() {
     const roleToDelete = visibleRates[index]?.role;
     if (!roleToDelete) return;
 
-    // Remove the rate from the full rates array
-    const updatedRates = rates.filter(rate => rate.role !== roleToDelete);
-    setRates(updatedRates);
+    deleteRate(roleToDelete);
   };
 
   const handlePerformerDiscountChange = (index: number, discount: number) => {
@@ -132,37 +108,20 @@ function App() {
     const roleToUpdate = visibleRates[index]?.role;
     if (!roleToUpdate) return;
 
-    // Update in-memory discount state (not persisted to localStorage)
-    setRateDiscounts(prev => ({
-      ...prev,
-      [roleToUpdate]: discount
-    }));
+    updateDiscount(roleToUpdate, discount);
   };
 
   const handleCSVImport = (importedModules: ProjectModule[]) => {
-    setModules(importedModules);
+    importModules(importedModules);
     setCsvSectionExpanded(false); // Collapse CSV section after successful import
-
-    // Add missing performers to rates with default rate
-    const missingPerformers = getMissingPerformers(importedModules, rates.map(r => r.role));
-
-    if (missingPerformers.length > 0) {
-      const newRates: RateConfig[] = missingPerformers.map(role => ({
-        role,
-        monthlyRate: 1000, // Default rate
-      }));
-      setRates([...rates, ...newRates]);
-    }
   };
 
   const handleModuleToggle = (id: string) => {
-    setModules(modules.map(m =>
-      m.id === id ? { ...m, isEnabled: !m.isEnabled } : m
-    ));
+    toggleModule(id);
   };
 
   const handleBulkToggle = (enabled: boolean) => {
-    setModules(modules.map(m => ({ ...m, isEnabled: enabled })));
+    bulkToggle(enabled);
   };
 
   const handleAddModule = (moduleData: {
@@ -173,37 +132,7 @@ function App() {
     designPerformers: string[];
     developmentPerformers: string[];
   }) => {
-    // Generate unique ID using timestamp
-    const id = `module-${Date.now()}`;
-
-    // Create new module
-    const newModule: ProjectModule = {
-      id,
-      name: moduleData.name,
-      designDays: moduleData.designDays,
-      frontendDays: moduleData.frontendDays,
-      backendDays: moduleData.backendDays,
-      designPerformers: moduleData.designPerformers,
-      developmentPerformers: moduleData.developmentPerformers,
-      isEnabled: true, // Enabled by default
-    };
-
-    // Add to modules array at the top
-    setModules([newModule, ...modules]);
-
-    // Auto-create missing performers (like CSV import does)
-    const missingPerformers = getMissingPerformers(
-      [newModule],
-      rates.map(r => r.role)
-    );
-
-    if (missingPerformers.length > 0) {
-      const newRates: RateConfig[] = missingPerformers.map(role => ({
-        role,
-        monthlyRate: 1000, // Default rate
-      }));
-      setRates([...rates, ...newRates]);
-    }
+    addModule(moduleData);
   };
 
   const handleDiscountChange = (discountPercentage: number) => {
@@ -233,18 +162,22 @@ function App() {
               isExpanded={csvSectionExpanded}
               onToggle={setCsvSectionExpanded}
             >
-              <CSVImporter onImport={handleCSVImport} />
+              <ErrorBoundary fallback={<CSVImportErrorFallback />}>
+                <CSVImporter onImport={handleCSVImport} />
+              </ErrorBoundary>
             </CollapsibleSection>
 
             {/* Rate Configuration */}
             <CollapsibleSection title="Monthly Rates" defaultExpanded={false}>
-              <RateConfiguration
-                rates={visibleRates}
-                onRateChange={handleRateChange}
-                onRateDelete={handleRateDelete}
-                onDiscountChange={handlePerformerDiscountChange}
-                currency={currency}
-              />
+              <ErrorBoundary fallback={<RateConfigErrorFallback />}>
+                <RateConfiguration
+                  rates={visibleRates}
+                  onRateChange={handleRateChange}
+                  onRateDelete={handleRateDelete}
+                  onDiscountChange={handlePerformerDiscountChange}
+                  currency={currency}
+                />
+              </ErrorBoundary>
             </CollapsibleSection>
 
             {/* Feature Toggles */}
@@ -284,25 +217,27 @@ function App() {
       }
       rightPanel={
         <RightPanel>
-          <QuoteSummary
-            totalQuote={quote.totalQuote}
-            monthlyFee={quote.monthlyFee}
-            productPrice={quote.productPrice}
-            totalDays={quote.totalDays}
-            designDays={quote.designDays}
-            developmentDays={quote.developmentDays}
-            designCost={quote.designCost}
-            developmentCost={quote.developmentCost}
-            teamSizeMultiplier={quote.teamSizeMultiplier}
-            discountAmount={quote.discountAmount}
-            finalTotal={quote.finalTotal}
-            modules={modules}
-            overlapDays={workOverlap}
-            onPriceClick={handlePriceClick}
-            currency={currency}
-            onCurrencyToggle={handleCurrencyToggle}
-            rates={rates}
-          />
+          <ErrorBoundary fallback={<CalculationErrorFallback />}>
+            <QuoteSummary
+              totalQuote={quote.totalQuote}
+              monthlyFee={quote.monthlyFee}
+              productPrice={quote.productPrice}
+              totalDays={quote.totalDays}
+              designDays={quote.designDays}
+              developmentDays={quote.developmentDays}
+              designCost={quote.designCost}
+              developmentCost={quote.developmentCost}
+              teamSizeMultiplier={quote.teamSizeMultiplier}
+              discountAmount={quote.discountAmount}
+              finalTotal={quote.finalTotal}
+              modules={modules}
+              overlapDays={workOverlap}
+              onPriceClick={handlePriceClick}
+              currency={currency}
+              onCurrencyToggle={handleCurrencyToggle}
+              rates={rates}
+            />
+          </ErrorBoundary>
         </RightPanel>
       }
     />

@@ -97,7 +97,7 @@ export default function CSVImporter({ onImport }: CSVImporterProps) {
   const downloadTemplate = () => {
     const template = `Module,Design (days),Front-end (days),Back-end (days),Design Performers,Development Performers
 Authentication,3,5,8,UI Designer,"Frontend Developer, Backend Developer"
-Dashboard,4,10,6,UI Designer,"Frontend Developer, Backend Developer, QA Engineer"
+Dashboard,4.5,10.5,6.5,UI Designer,"Frontend Developer, Backend Developer, QA Engineer"
 User Profile,2,4,3,"UI Designer, UX Designer","Frontend Developer, Backend Developer"`;
 
     const blob = new Blob([template], { type: 'text/csv' });
@@ -181,6 +181,9 @@ User Profile,2,4,3,"UI Designer, UX Designer","Frontend Developer, Backend Devel
 
         <p className="mt-2 text-xs text-gray-500">
           Required columns: Module, Design (days), Front-end (days), Back-end (days), Design Performers, Development Performers
+        </p>
+        <p className="mt-1 text-xs text-gray-500">
+          Decimal format: Both dot (2.5) and comma (2,5) are supported
         </p>
       </div>
 

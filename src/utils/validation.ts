@@ -167,12 +167,22 @@ export function validateCSVRow(row: unknown, rowIndex: number): CSVRow {
 }
 
 /**
+ * Normalize decimal separator (comma to dot)
+ * Supports both European (2,5) and US (2.5) formats
+ */
+function normalizeDecimal(value: string | number): string {
+  const str = String(value).trim();
+  // Replace comma with dot for European decimal format
+  return str.replace(',', '.');
+}
+
+/**
  * Convert and validate CSV row to ProjectModule
  */
 export function csvRowToModule(row: CSVRow, index: number): ProjectModule {
-  const designDays = parseFloat(String(row['Design (days)']));
-  const frontendDays = parseFloat(String(row['Front-end (days)']));
-  const backendDays = parseFloat(String(row['Back-end (days)']));
+  const designDays = parseFloat(normalizeDecimal(row['Design (days)']));
+  const frontendDays = parseFloat(normalizeDecimal(row['Front-end (days)']));
+  const backendDays = parseFloat(normalizeDecimal(row['Back-end (days)']));
 
   if (isNaN(designDays) || designDays < 0) {
     throw new ValidationError(

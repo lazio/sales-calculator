@@ -197,9 +197,11 @@ describe('calculationEngine', () => {
       isEnabled: false,  // Disabled - Duration: MAX(2, 7, 9) = 9 days
     },
   ];
-  // NEW PARALLEL LOGIC:
-  // Enabled modules (1 & 2): design=3+4=7, frontend=5+10=15, backend=8+6=14 → timeline=MAX(7,15,14)=15 days
-  // All modules enabled (1,2,3): design=3+4+2=9, frontend=5+10+7=22, backend=8+6+9=23 → timeline=MAX(9,22,23)=23 days
+  // CALCULATION LOGIC:
+  // Enabled modules (1 & 2): design=3+4=7, frontend=5+10=15, backend=8+6=14
+  //   → dev=MAX(15,14)=15 → fully parallel timeline=MAX(7,15)=15 days
+  // All modules enabled (1,2,3): design=3+4+2=9, frontend=5+10+7=22, backend=8+6+9=23
+  //   → dev=MAX(22,23)=23 → fully parallel timeline=MAX(9,23)=23 days
 
   describe('Constants', () => {
     it('should have correct constant values', () => {
@@ -213,8 +215,8 @@ describe('calculationEngine', () => {
     it('should calculate timeline and effort correctly for enabled modules', () => {
       const stats = calculateModuleStats(mockModules);
 
-      // Timeline: design=7 + dev=MAX(5,8)+MAX(10,6)=8+10=18 - overlap=7 = 18 days
-      expect(stats.timelineDays).toBe(18);
+      // Timeline: design=7 + dev=MAX(15,14)=15 - overlap=7 = 15 days
+      expect(stats.timelineDays).toBe(15);
 
       // Effort: (3+5+8) + (4+10+6) = 16 + 20 = 36 days
       expect(stats.effortDays).toBe(36);
@@ -231,8 +233,9 @@ describe('calculationEngine', () => {
       const allEnabled = mockModules.map(m => ({ ...m, isEnabled: true }));
       const stats = calculateModuleStats(allEnabled);
 
-      // Timeline: design=9 + dev=8+10+9=27 - overlap=9 = 27 days
-      expect(stats.timelineDays).toBe(27);
+      // FE=5+10+7=22, BE=8+6+9=23 → MAX(22,23)=23
+      // Timeline: design=9 + dev=23 - overlap=9 = 23 days
+      expect(stats.timelineDays).toBe(23);
 
       // Effort: (3+5+8) + (4+10+6) + (2+7+9) = 16 + 20 + 18 = 54 days
       expect(stats.effortDays).toBe(54);
@@ -295,7 +298,8 @@ describe('calculationEngine', () => {
       expect(quote.designCost).toBe(1400); // UI Designer @ $200/day × 7 days
 
       // Verify development is separate
-      expect(quote.developmentDays).toBe(18); // MAX(5,8)=8 + MAX(10,6)=10
+      // Frontend total: 5+10=15, Backend total: 8+6=14 → MAX(15,14)=15
+      expect(quote.developmentDays).toBe(15);
       expect(quote.developmentCost).toBe(7250); // Module 1: (FE $250×5 + BE $250×8) + Module 2: (FE $250×10 + BE $250×6)
     });
 
@@ -343,7 +347,8 @@ describe('calculationEngine', () => {
       const quote = calculateQuote(mockRates, mockModules);
 
       const totalMonthlyRate = 23000; // Sum of all monthly rates
-      const timelineDays = 18; // design=7 + dev=18 - overlap=7 = 18 days
+      // Frontend total: 5+10=15, Backend total: 8+6=14 → MAX(15,14)=15
+      const timelineDays = 15; // design=7 + dev=15 - overlap=7 = 15 days
 
       // Module 1: Design $600 + Dev (FE $1250 + BE $2000) = $3850
       // Module 2: Design $800 + Dev (FE $2500 + BE $1500) = $4800
@@ -353,7 +358,7 @@ describe('calculationEngine', () => {
       expect(quote.monthlyFee).toBe(totalMonthlyRate); // Reference rate card
       expect(quote.totalDays).toBe(timelineDays);
       expect(quote.designDays).toBe(7); // 3 + 4
-      expect(quote.developmentDays).toBe(18); // 8 + 10
+      expect(quote.developmentDays).toBe(15); // MAX(15 frontend, 14 backend)
       expect(quote.designCost).toBe(1400); // $600 + $800
       expect(quote.developmentCost).toBe(7250); // $3250 + $4000
       expect(quote.productPrice).toBe(expectedTotal); // Same as totalQuote
@@ -400,11 +405,11 @@ describe('calculationEngine', () => {
       // When overlapDays >= min(design, dev), work is fully parallel
       const quote = calculateQuote(mockRates, mockModules, 0, Infinity);
 
-      // Design: 7 days, Dev: 18 days (sum of max per module)
-      // Fully parallel: 7 + 18 - 7 = 18 days
-      expect(quote.totalDays).toBe(18);
+      // Design: 7 days, Dev: MAX(15 FE, 14 BE) = 15 days
+      // Fully parallel: 7 + 15 - 7 = 15 days
+      expect(quote.totalDays).toBe(15);
       expect(quote.designDays).toBe(7);
-      expect(quote.developmentDays).toBe(18); // Sum of MAX per module: 8 + 10
+      expect(quote.developmentDays).toBe(15); // MAX(15 frontend, 14 backend)
     });
 
     it('should calculate timeline with zero overlap (sequential)', () => {
@@ -412,9 +417,9 @@ describe('calculationEngine', () => {
       const overlapDays = 0;
       const quote = calculateQuote(mockRates, mockModules, 0, overlapDays);
 
-      // Design: 7 days, Dev: 18 days
-      // Sequential: 7 + 18 - 0 = 25 days
-      expect(quote.totalDays).toBe(25);
+      // Design: 7 days, Dev: 15 days
+      // Sequential: 7 + 15 - 0 = 22 days
+      expect(quote.totalDays).toBe(22);
       expect(quote.totalQuote).toBe(8650); // Cost doesn't change
     });
 
@@ -423,10 +428,10 @@ describe('calculationEngine', () => {
       const overlapDays = 20;
       const quote = calculateQuote(mockRates, mockModules, 0, overlapDays);
 
-      // Design: 7 days, Dev: 18 days
-      // Overlap limited by min(20, 7, 18) = 7 days
-      // Timeline: 7 + 18 - 7 = 18 days (same as fully parallel since overlap > design)
-      expect(quote.totalDays).toBe(18);
+      // Design: 7 days, Dev: 15 days
+      // Overlap limited by min(20, 7, 15) = 7 days
+      // Timeline: 7 + 15 - 7 = 15 days (same as fully parallel since overlap > design)
+      expect(quote.totalDays).toBe(15);
     });
 
     it('should calculate timeline with 5 days overlap (1 week)', () => {
@@ -434,9 +439,9 @@ describe('calculationEngine', () => {
       const overlapDays = 5;
       const quote = calculateQuote(mockRates, mockModules, 0, overlapDays);
 
-      // Design: 7 days, Dev: 18 days
-      // Timeline: 7 + 18 - 5 = 20 days
-      expect(quote.totalDays).toBe(20);
+      // Design: 7 days, Dev: 15 days
+      // Timeline: 7 + 15 - 5 = 17 days
+      expect(quote.totalDays).toBe(17);
       expect(quote.totalQuote).toBe(8650); // Cost unchanged
     });
 
@@ -444,10 +449,10 @@ describe('calculationEngine', () => {
       const overlapDays = 10;
       const quote = calculateQuote(mockRates, mockModules, 0, overlapDays);
 
-      // Design: 7 days, Dev: 18 days
-      // Overlap limited by min(10, 7, 18) = 7 days (can't overlap more than design)
-      // Timeline: 7 + 18 - 7 = 18 days
-      expect(quote.totalDays).toBe(18);
+      // Design: 7 days, Dev: 15 days
+      // Overlap limited by min(10, 7, 15) = 7 days (can't overlap more than design)
+      // Timeline: 7 + 15 - 7 = 15 days
+      expect(quote.totalDays).toBe(15);
     });
 
     it('should not reduce cost when applying overlap', () => {
@@ -468,19 +473,20 @@ describe('calculationEngine', () => {
       const overlapDays = 10;
       const quote = calculateQuote(mockRates, allEnabled, 0, overlapDays);
 
-      // Design: 9 days, Dev: 27 days (8+10+9)
-      // Overlap: min(10, 9, 27) = 9 days
-      // Timeline: 9 + 27 - 9 = 27 days
-      expect(quote.totalDays).toBe(27);
+      // All modules: FE=5+10+7=22, BE=8+6+9=23 → MAX(22,23)=23
+      // Design: 9 days, Dev: 23 days
+      // Overlap: min(10, 9, 23) = 9 days
+      // Timeline: 9 + 23 - 9 = 23 days
+      expect(quote.totalDays).toBe(23);
     });
 
     it('should handle overlap larger than both phases', () => {
-      const overlapDays = 100; // Much larger than design (7d) or dev (18d)
+      const overlapDays = 100; // Much larger than design (7d) or dev (15d)
       const quote = calculateQuote(mockRates, mockModules, 0, overlapDays);
 
       // Should be clamped to min(design, dev) = 7 days
-      // Timeline: 7 + 18 - 7 = 18 days (fully parallel)
-      expect(quote.totalDays).toBe(18);
+      // Timeline: 7 + 15 - 7 = 15 days (fully parallel)
+      expect(quote.totalDays).toBe(15);
     });
   });
 
@@ -488,34 +494,34 @@ describe('calculationEngine', () => {
     it('should calculate timeline with full parallel', () => {
       const stats = calculateModuleStats(mockModules, Infinity);
 
-      // Fully parallel: 7 + 18 - 7 = 18 days
-      expect(stats.timelineDays).toBe(18);
+      // Fully parallel: 7 + 15 - 7 = 15 days
+      expect(stats.timelineDays).toBe(15);
       expect(stats.effortDays).toBe(36);
     });
 
     it('should calculate timeline with zero overlap', () => {
       const stats = calculateModuleStats(mockModules, 0);
 
-      // Sequential: 7 + 18 - 0 = 25 days
-      expect(stats.timelineDays).toBe(25);
+      // Sequential: 7 + 15 - 0 = 22 days
+      expect(stats.timelineDays).toBe(22);
       expect(stats.effortDays).toBe(36); // Effort unchanged
     });
 
     it('should calculate timeline with partial overlap', () => {
       const stats = calculateModuleStats(mockModules, 5);
 
-      // Design: 7 days, Dev: 18 days
-      // Timeline: 7 + 18 - 5 = 20 days
-      expect(stats.timelineDays).toBe(20);
+      // Design: 7 days, Dev: 15 days
+      // Timeline: 7 + 15 - 5 = 17 days
+      expect(stats.timelineDays).toBe(17);
       expect(stats.effortDays).toBe(36);
     });
 
     it('should limit overlap to shorter phase', () => {
       const stats = calculateModuleStats(mockModules, 10);
 
-      // Overlap limited to min(10, 7, 18) = 7 days
-      // Timeline: 7 + 18 - 7 = 18 days
-      expect(stats.timelineDays).toBe(18);
+      // Overlap limited to min(10, 7, 15) = 7 days
+      // Timeline: 7 + 15 - 7 = 15 days
+      expect(stats.timelineDays).toBe(15);
     });
   });
 
@@ -525,8 +531,8 @@ describe('calculationEngine', () => {
       const overlapDays = 20; // 1 month in business days
       const quote = calculateQuote(mockRates, mockModules, 0, overlapDays);
 
-      // Design: 7 days (less than 1 month), so fully parallel
-      expect(quote.totalDays).toBe(18);
+      // Design: 7 days (less than 1 month), Dev: 15 days, so fully parallel
+      expect(quote.totalDays).toBe(15);
       expect(quote.totalQuote).toBe(8650);
     });
 
@@ -647,8 +653,9 @@ describe('calculationEngine', () => {
       // Module 2: Backend $3750 = $3750
       // Total: $7250
       expect(quote.totalQuote).toBe(7250);
-      // Timeline: design=5 + dev=(10+15)=25 - overlap=5 = 25 days
-      expect(quote.totalDays).toBe(25);
+      // FE=10, BE=15 → MAX(10,15)=15
+      // Timeline: design=5 + dev=15 - overlap=5 = 15 days
+      expect(quote.totalDays).toBe(15);
     });
 
     it('should handle overlap with design-only project', () => {

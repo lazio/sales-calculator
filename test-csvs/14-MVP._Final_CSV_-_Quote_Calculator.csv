@@ -1,0 +1,28 @@
+Module,Design (days),Front-end (days),Back-end (days),Design Performers,Development Performers
+Design research (phase),8,0,0,UI Designer,
+Customer. Auth (Sign in / Sign up / Reset),4,2.5,1.5,UI Designer,"FE developer, BE developer, QA"
+Customer. Onboarding / Permissions,3,1.5,1,UI Designer,"FE developer, BE developer, QA"
+Customer. Home (List + Map),7,4,4,UI Designer,"FE developer, BE developer, QA"
+Customer. Offer Details,3,2.5,2,UI Designer,"FE developer, BE developer, QA"
+Customer. Checkout (Stripe Checkout),3,2.5,4,UI Designer,"FE developer, BE developer, QA"
+Customer. Order Confirmation,1,1.5,2.5,UI Designer,"FE developer, BE developer, QA"
+Customer. Profile / Settings,1,1.5,1.5,UI Designer,"FE developer, BE developer, QA"
+Design Handoff (prep for DEV),2,0,0,UI Designer,
+Set Up (dev),0,2,1,,"FE developer, BE developer, QA"
+Business Partner. Register business profile,0,2.5,3,,"FE developer, BE developer, QA"
+Business Partner. Offers list management,0,3.5,5,,"FE developer, BE developer, QA"
+Business Partner. Orders operations,0,3.5,4,,"FE developer, BE developer, QA"
+Business Partner. Payments from DishUp pending,0,2.5,2.5,,"FE developer, BE developer, QA"
+Business Partner. Profile/settings,0,1.5,1.5,,"FE developer, BE developer, QA"
+Admin. Auth,0,1.5,1,,"FE developer, BE developer, QA"
+Admin. Customer list management,0,2.5,2.5,,"FE developer, BE developer, QA"
+Admin. Business partners list management.,0,3.5,3.5,,"FE developer, BE developer, QA"
+Admin. Orders list management.,0,2.5,2.5,,"FE developer, BE developer, QA"
+Admin. Payments summaries management,0,1.5,2.5,,"FE developer, BE developer, QA"
+File Storage & CDN,0,0,1.5,,BE developer
+Notifications,0,0,3.5,,"BE developer, QA"
+Observability,0,0,1.5,,BE developer
+Pre-release preparation,0,4,4,,"FE developer, BE developer, QA"
+Regression and Stabilization,0,2.5,2,,"FE developer, BE developer, QA"
+Release,0,1,1,,"FE developer, BE developer, QA"
+"Post-release stabilisation, documentation",0,1.5,1.5,,"FE developer, BE developer, QA"

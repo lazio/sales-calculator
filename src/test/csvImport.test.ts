@@ -459,6 +459,121 @@ describe('CSV Import Edge Cases', () => {
       expect(module.frontendDays).toBe(15.8);
       expect(module.backendDays).toBe(12.3);
     });
+
+    it('should accept comma decimal in design days (European format)', () => {
+      const validRow: CSVRow = {
+        Module: 'European Format Test',
+        'Design (days)': '5,5',
+        'Front-end (days)': '8',
+        'Back-end (days)': '10',
+        'Design Performers': 'UI Designer',
+        'Development Performers': 'Frontend Developer, Backend Developer',
+      };
+
+      const validated = validateCSVRow(validRow, 0);
+      const module = csvRowToModule(validated, 0);
+
+      expect(module.designDays).toBe(5.5);
+    });
+
+    it('should accept comma decimal in frontend days', () => {
+      const validRow: CSVRow = {
+        Module: 'Comma Test',
+        'Design (days)': '5',
+        'Front-end (days)': '8,75',
+        'Back-end (days)': '10',
+        'Design Performers': 'UI Designer',
+        'Development Performers': 'Frontend Developer, Backend Developer',
+      };
+
+      const validated = validateCSVRow(validRow, 0);
+      const module = csvRowToModule(validated, 0);
+
+      expect(module.frontendDays).toBe(8.75);
+    });
+
+    it('should accept comma decimal in backend days', () => {
+      const validRow: CSVRow = {
+        Module: 'Comma Test',
+        'Design (days)': '5',
+        'Front-end (days)': '8',
+        'Back-end (days)': '10,25',
+        'Design Performers': 'UI Designer',
+        'Development Performers': 'Frontend Developer, Backend Developer',
+      };
+
+      const validated = validateCSVRow(validRow, 0);
+      const module = csvRowToModule(validated, 0);
+
+      expect(module.backendDays).toBe(10.25);
+    });
+
+    it('should handle all comma decimals (European format)', () => {
+      const validRow: CSVRow = {
+        Module: 'All Commas',
+        'Design (days)': '7,2',
+        'Front-end (days)': '15,8',
+        'Back-end (days)': '12,3',
+        'Design Performers': 'UI Designer',
+        'Development Performers': 'Frontend Developer, Backend Developer',
+      };
+
+      const validated = validateCSVRow(validRow, 0);
+      const module = csvRowToModule(validated, 0);
+
+      expect(module.designDays).toBe(7.2);
+      expect(module.frontendDays).toBe(15.8);
+      expect(module.backendDays).toBe(12.3);
+    });
+
+    it('should handle mixed comma and dot decimals in same CSV', () => {
+      const mixedRows: CSVRow[] = [
+        {
+          Module: 'Dot Format',
+          'Design (days)': '5.5',
+          'Front-end (days)': '8.75',
+          'Back-end (days)': '10.25',
+          'Design Performers': 'UI Designer',
+          'Development Performers': 'Frontend Developer, Backend Developer',
+        },
+        {
+          Module: 'Comma Format',
+          'Design (days)': '5,5',
+          'Front-end (days)': '8,75',
+          'Back-end (days)': '10,25',
+          'Design Performers': 'UI Designer',
+          'Development Performers': 'Frontend Developer, Backend Developer',
+        },
+      ];
+
+      mixedRows.forEach((row, index) => {
+        const validated = validateCSVRow(row, index);
+        const module = csvRowToModule(validated, index);
+
+        // Both should produce identical results
+        expect(module.designDays).toBe(5.5);
+        expect(module.frontendDays).toBe(8.75);
+        expect(module.backendDays).toBe(10.25);
+      });
+    });
+
+    it('should accept 0,5 format (European zero decimal)', () => {
+      const validRow: CSVRow = {
+        Module: 'Half Day',
+        'Design (days)': '0,5',
+        'Front-end (days)': '0,5',
+        'Back-end (days)': '1,5',
+        'Design Performers': 'UI Designer',
+        'Development Performers': 'Frontend Developer, Backend Developer',
+      };
+
+      const validated = validateCSVRow(validRow, 0);
+      const module = csvRowToModule(validated, 0);
+
+      expect(module.designDays).toBe(0.5);
+      expect(module.frontendDays).toBe(0.5);
+      expect(module.backendDays).toBe(1.5);
+    });
   });
 
   describe('Special characters and Unicode', () => {
