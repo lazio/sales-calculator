@@ -1,4 +1,4 @@
-Module,Design (days),Front-end (days),Back-end (days),Design Performers,Development Performers
-Test Module Comma,2,5,3,5,4,5,UI Designer,"Frontend Developer, Backend Developer"
-Test Module Dot,2.5,3.5,4.5,UI Designer,"Frontend Developer, Backend Developer"
-Mixed Format,1,2,5.5,6,UX Designer,"Frontend Developer, Backend Developer"
+Module;Design (days);Front-end (days);Back-end (days);Design Performers;Development Performers;;;
+Test Module Comma;2;5;3;UX Designer;Frontend Developer, Backend Developer;;;
+Test Module Dot;2.5;3.5;4.5;UI Designer;Frontend Developer, Backend Developer;;;
+Mixed Format;1;2;5.5;UX Designer;Frontend Developer, Backend Developer;;;
