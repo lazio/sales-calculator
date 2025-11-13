@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+
 interface SidebarNavProps {
   activeSection: 'csv-import' | 'rates' | 'modules' | 'work-breakdown';
   onSectionChange: (section: 'csv-import' | 'rates' | 'modules' | 'work-breakdown') => void;
@@ -10,29 +12,23 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { id: 'rates', label: 'Rates', icon: '💰' },
-  { id: 'modules', label: 'Modules', icon: '📦' },
-  { id: 'work-breakdown', label: 'Work Breakdown', icon: '📊' },
+  { id: 'rates', label: 'Rates', icon: '' },
+  { id: 'modules', label: 'Modules', icon: '' },
+  { id: 'work-breakdown', label: 'Work Breakdown', icon: '' },
 ];
 
 export default function SidebarNav({ activeSection, onSectionChange }: SidebarNavProps) {
   return (
-    <nav className="flex flex-col space-y-1">
+    <nav className="flex flex-col">
       {menuItems.map((item) => (
-        <button
+        <Button
           key={item.id}
           onClick={() => onSectionChange(item.id)}
-          className={`
-            w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center space-x-3
-            ${activeSection === item.id
-              ? 'bg-blue-500 text-white shadow-md'
-              : 'text-gray-700 hover:bg-gray-100'
-            }
-          `}
+          variant={activeSection === item.id ? "default" : "ghost"}
+          className="w-full justify-start"
         >
-          <span className="text-xl">{item.icon}</span>
-          <span className="font-medium">{item.label}</span>
-        </button>
+          {item.label}
+        </Button>
       ))}
     </nav>
   );

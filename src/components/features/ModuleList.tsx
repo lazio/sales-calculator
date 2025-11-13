@@ -3,6 +3,24 @@ import { ProjectModule } from '@/types/project.types';
 import { RateConfig } from '@/types/rates.types';
 import { calculateModuleStats, calculateModulePrice } from '@/services/calculationEngine';
 import AddModuleForm from './AddModuleForm';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Plus, X, Settings2 } from 'lucide-react';
 
 interface ModuleListProps {
   modules: ProjectModule[];
@@ -27,6 +45,14 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModul
   const [sortBy, setSortBy] = useState<SortOption>('default');
   const [sortDesc, setSortDesc] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState({
+    design: true,
+    frontend: true,
+    backend: true,
+    timeline: true,
+    team: true,
+    price: true,
+  });
 
   if (modules.length === 0) {
     return null;
@@ -99,92 +125,79 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModul
 
   return (
     <div className="space-y-4 animate-slide-up">
-      <div className="mb-4">
-        <div className="mb-2">
-          <h3 className="text-lg font-semibold text-gray-800">Project Modules</h3>
-          <p className="text-sm text-gray-600">
-            {modules.filter(m => m.isEnabled).length} of {modules.length} enabled • {timelineDays}d timeline • {effortDays}d effort
-          </p>
-        </div>
+      <div className="mb-2">
+        <h3 className="mb-2">Project Modules</h3>
+        <p className="text-muted-foreground">
+          {modules.filter(m => m.isEnabled).length} of {modules.length} enabled • {timelineDays} days timeline • {effortDays} days effort
+        </p>
+      </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 mb-3">
-          {onAddModule && (
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="px-3 py-1 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded transition-colors flex items-center gap-1"
+      <div className="flex justify-end gap-2 mb-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Settings2 className="h-4 w-4" />
+              Columns
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.design}
+              onCheckedChange={(checked) => setVisibleColumns({ ...visibleColumns, design: !!checked })}
             >
-              {showAddForm ? (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Cancel
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add Module
-                </>
-              )}
-            </button>
-          )}
-          {onBulkToggle && (
-            <>
-              <button
-                onClick={() => onBulkToggle(true)}
-                className="px-3 py-1 text-sm font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 rounded transition-colors"
-              >
-                Enable All
-              </button>
-              <button
-                onClick={() => onBulkToggle(false)}
-                className="px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-              >
-                Disable All
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Sort Controls */}
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-600">Sort by:</span>
-          <button
-            onClick={() => handleSort('default')}
-            className={`px-2 py-1 rounded transition-colors ${
-              sortBy === 'default' ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
-            }`}
+              Design
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.frontend}
+              onCheckedChange={(checked) => setVisibleColumns({ ...visibleColumns, frontend: !!checked })}
+            >
+              Frontend
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.backend}
+              onCheckedChange={(checked) => setVisibleColumns({ ...visibleColumns, backend: !!checked })}
+            >
+              Backend
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.timeline}
+              onCheckedChange={(checked) => setVisibleColumns({ ...visibleColumns, timeline: !!checked })}
+            >
+              Timeline
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.team}
+              onCheckedChange={(checked) => setVisibleColumns({ ...visibleColumns, team: !!checked })}
+            >
+              Team
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={visibleColumns.price}
+              onCheckedChange={(checked) => setVisibleColumns({ ...visibleColumns, price: !!checked })}
+            >
+              Price
+            </DropdownMenuCheckboxItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {onAddModule && (
+          <Button
+            onClick={() => setShowAddForm(!showAddForm)}
+            variant={showAddForm ? "outline" : "default"}
+            size="sm"
           >
-            CSV Order
-          </button>
-          <button
-            onClick={() => handleSort('name')}
-            className={`px-2 py-1 rounded transition-colors ${
-              sortBy === 'name' ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Name {sortBy === 'name' && (sortDesc ? '↓' : '↑')}
-          </button>
-          <button
-            onClick={() => handleSort('price')}
-            className={`px-2 py-1 rounded transition-colors ${
-              sortBy === 'price' ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Price {sortBy === 'price' && (sortDesc ? '↓' : '↑')}
-          </button>
-          <button
-            onClick={() => handleSort('timeline')}
-            className={`px-2 py-1 rounded transition-colors ${
-              sortBy === 'timeline' ? 'bg-primary-100 text-primary-700 font-medium' : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Timeline {sortBy === 'timeline' && (sortDesc ? '↓' : '↑')}
-          </button>
-        </div>
+            {showAddForm ? (
+              <>
+                <X className="h-4 w-4" />
+                Cancel
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" />
+                Add Module
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Add Module Form */}
@@ -196,113 +209,111 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModul
         />
       )}
 
-      <div className="space-y-2">
-        {sortedModules.map((module) => {
-          const isEnabled = module.isEnabled;
-          const modulePrice = calculateModulePrice(module, rates);
-          const costPercentage = totalCost > 0 ? Math.round((modulePrice / totalCost) * 100) : 0;
+      <div className="rounded-xl border">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead className="w-[50px]">
+                {onBulkToggle && (
+                  <Checkbox
+                    checked={modules.every(m => m.isEnabled)}
+                    onCheckedChange={(checked) => onBulkToggle(!!checked)}
+                  />
+                )}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer hover:text-foreground"
+                onClick={() => handleSort('name')}
+              >
+                Module{sortBy === 'name' && <>{'\u00A0'}{sortDesc ? '↓' : '↑'}</>}
+              </TableHead>
+              {visibleColumns.design && <TableHead>Design</TableHead>}
+              {visibleColumns.frontend && <TableHead>Frontend</TableHead>}
+              {visibleColumns.backend && <TableHead>Backend</TableHead>}
+              {visibleColumns.timeline && (
+                <TableHead
+                  className="cursor-pointer hover:text-foreground"
+                  onClick={() => handleSort('timeline')}
+                >
+                  Timeline{sortBy === 'timeline' && <>{'\u00A0'}{sortDesc ? '↓' : '↑'}</>}
+                </TableHead>
+              )}
+              {visibleColumns.team && <TableHead>Team</TableHead>}
+              {visibleColumns.price && (
+                <TableHead
+                  className="text-right cursor-pointer hover:text-foreground"
+                  onClick={() => handleSort('price')}
+                >
+                  Price{sortBy === 'price' && <>{'\u00A0'}{sortDesc ? '↓' : '↑'}</>}
+                </TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedModules.map((module) => {
+              const isEnabled = module.isEnabled;
+              const modulePrice = calculateModulePrice(module, rates);
+              const costPercentage = totalCost > 0 ? Math.round((modulePrice / totalCost) * 100) : 0;
 
-          return (
-            <div
-              key={module.id}
-              onClick={() => onToggle(module.id)}
-              className={`rounded-lg p-4 transition-all duration-300 hover:shadow-md cursor-pointer ${
-                isEnabled
-                  ? 'bg-gray-50 opacity-100'
-                  : 'bg-gray-50 opacity-50'
-              }`}
-            >
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3 flex-1">
-                <input
-                  type="checkbox"
-                  checked={module.isEnabled}
-                  onChange={() => {}} // Handled by parent div onClick
-                  onClick={(e) => e.stopPropagation()} // Prevent double-toggle
-                  className="mt-1 w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 focus:ring-2 pointer-events-none"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h4 className="font-semibold text-gray-800">{module.name}</h4>
-                    <span className="px-2 py-0.5 text-sm font-semibold bg-green-100 text-green-800 rounded ml-auto">
-                      {currency}{modulePrice.toLocaleString()}
-                      {isEnabled && totalCost > 0 && (
-                        <span className="text-xs text-green-600 ml-1">({costPercentage}%)</span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-                    <span>Design: {module.designDays}d</span>
-                    <span>Frontend: {module.frontendDays}d</span>
-                    <span>Backend: {module.backendDays}d</span>
-                    <span className="text-gray-500">
-                      Timeline: {Math.max(module.designDays, module.frontendDays, module.backendDays)}d
-                    </span>
-                  </div>
-                  {/* Show performers only if there's actual work in that phase */}
-                  {((module.designDays > 0 && module.designPerformers.length > 0) ||
-                    ((module.frontendDays > 0 || module.backendDays > 0) && module.developmentPerformers.length > 0)) && (
-                    <div className="mt-2 space-y-1">
-                      {module.designDays > 0 && module.designPerformers.length > 0 && (
-                        <div className="flex items-start gap-1">
-                          <span className="text-xs text-gray-500 font-medium min-w-[60px]">Design:</span>
-                          <div className="flex flex-wrap gap-1">
-                            {module.designPerformers.map((performer, idx) => (
-                              <span
-                                key={idx}
-                                className="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded"
-                              >
-                                {performer}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {(module.frontendDays > 0 || module.backendDays > 0) && module.developmentPerformers.length > 0 && (
-                        <div className="flex items-start gap-1">
-                          <span className="text-xs text-gray-500 font-medium min-w-[60px]">Dev:</span>
-                          <div className="flex flex-wrap gap-1">
-                            {module.developmentPerformers.map((performer, idx) => (
-                              <span
-                                key={idx}
-                                className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded"
-                              >
-                                {performer}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+              return (
+                <TableRow
+                  key={module.id}
+                  onClick={() => onToggle(module.id)}
+                  className={`cursor-pointer ${!isEnabled && 'opacity-50'}`}
+                >
+                  <TableCell>
+                    <Checkbox
+                      checked={module.isEnabled}
+                      onCheckedChange={() => {}}
+                      onClick={(e) => e.stopPropagation()}
+                      className="pointer-events-none"
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">{module.name}</TableCell>
+                  {visibleColumns.design && <TableCell>{module.designDays}</TableCell>}
+                  {visibleColumns.frontend && <TableCell>{module.frontendDays}</TableCell>}
+                  {visibleColumns.backend && <TableCell>{module.backendDays}</TableCell>}
+                  {visibleColumns.timeline && (
+                    <TableCell>{Math.max(module.designDays, module.frontendDays, module.backendDays)}</TableCell>
                   )}
-                </div>
-              </div>
-            </div>
-          </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="flex items-start gap-2">
-          <svg
-            className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <div>
-            <p className="text-sm font-medium text-blue-900">Note:</p>
-            <p className="text-sm text-blue-800">
-              Toggle any module on/off to adjust the project scope.
-            </p>
-          </div>
-        </div>
+                  {visibleColumns.team && (
+                    <TableCell>
+                      <div className="flex gap-1 overflow-hidden" title={
+                        [...(module.designDays > 0 && module.designPerformers.length > 0 ? module.designPerformers : []),
+                         ...(module.frontendDays > 0 || module.backendDays > 0) && module.developmentPerformers.length > 0 ? module.developmentPerformers : []].join(', ')
+                      }>
+                        {module.designPerformers.length > 0 && module.designDays > 0 && (
+                          module.designPerformers.map((performer, idx) => (
+                            <Badge key={`design-${idx}`} variant="outline" className="whitespace-nowrap">
+                              {performer}
+                            </Badge>
+                          ))
+                        )}
+                        {module.developmentPerformers.length > 0 && (module.frontendDays > 0 || module.backendDays > 0) && (
+                          module.developmentPerformers.map((performer, idx) => (
+                            <Badge key={`dev-${idx}`} variant="outline" className="whitespace-nowrap">
+                              {performer}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
+                  {visibleColumns.price && (
+                    <TableCell className="text-right">
+                      <Badge variant="secondary">
+                        {currency}{modulePrice.toLocaleString()}
+                        {totalCost > 0 && (
+                          <span className="ml-1">({costPercentage}%)</span>
+                        )}
+                      </Badge>
+                    </TableCell>
+                  )}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

@@ -316,7 +316,7 @@ describe('Integration Tests', () => {
       },
     ];
 
-    it('should show Enable All and Disable All buttons', () => {
+    it('should show main checkbox in table header', () => {
       render(
         <ModuleList
           modules={mockModules}
@@ -327,16 +327,18 @@ describe('Integration Tests', () => {
         />
       );
 
-      expect(screen.getByRole('button', { name: /enable all/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /disable all/i })).toBeInTheDocument();
+      const checkboxes = screen.getAllByRole('checkbox');
+      // First checkbox should be the main checkbox in header
+      expect(checkboxes.length).toBeGreaterThan(0);
     });
 
-    it('should call onBulkToggle when Enable All is clicked', async () => {
+    it('should call onBulkToggle when header checkbox is clicked to enable all', async () => {
       const mockOnBulkToggle = vi.fn();
+      const modulesWithOneDisabled = mockModules.map((m, i) => ({ ...m, isEnabled: i === 0 }));
 
       render(
         <ModuleList
-          modules={mockModules}
+          modules={modulesWithOneDisabled}
           onToggle={vi.fn()}
           onBulkToggle={mockOnBulkToggle}
           rates={mockRates}
@@ -344,18 +346,20 @@ describe('Integration Tests', () => {
         />
       );
 
-      const enableAllButton = screen.getByRole('button', { name: /enable all/i });
-      await userEvent.click(enableAllButton);
+      const checkboxes = screen.getAllByRole('checkbox');
+      // First checkbox is the header checkbox
+      await userEvent.click(checkboxes[0]);
 
       expect(mockOnBulkToggle).toHaveBeenCalledWith(true);
     });
 
-    it('should call onBulkToggle when Disable All is clicked', async () => {
+    it('should call onBulkToggle when header checkbox is clicked to disable all', async () => {
       const mockOnBulkToggle = vi.fn();
+      const allEnabledModules = mockModules.map(m => ({ ...m, isEnabled: true }));
 
       render(
         <ModuleList
-          modules={mockModules}
+          modules={allEnabledModules}
           onToggle={vi.fn()}
           onBulkToggle={mockOnBulkToggle}
           rates={mockRates}
@@ -363,8 +367,10 @@ describe('Integration Tests', () => {
         />
       );
 
-      const disableAllButton = screen.getByRole('button', { name: /disable all/i });
-      await userEvent.click(disableAllButton);
+      const checkboxes = screen.getAllByRole('checkbox');
+      // First checkbox is the header checkbox, it should be checked
+      // Clicking it should disable all
+      await userEvent.click(checkboxes[0]);
 
       expect(mockOnBulkToggle).toHaveBeenCalledWith(false);
     });
@@ -409,12 +415,13 @@ describe('Integration Tests', () => {
         />
       );
 
-      const moduleNames = screen.getAllByRole('heading', { level: 4 });
-      expect(moduleNames[0]).toHaveTextContent('Zebra Feature');
-      expect(moduleNames[1]).toHaveTextContent('Alpha Feature');
+      const rows = screen.getAllByRole('row');
+      // Skip header row (index 0), check data rows
+      expect(rows[1]).toHaveTextContent('Zebra Feature');
+      expect(rows[2]).toHaveTextContent('Alpha Feature');
     });
 
-    it('should sort by name when Name button is clicked', async () => {
+    it('should sort by name when Module column header is clicked', async () => {
       render(
         <ModuleList
           modules={mockModules}
@@ -424,13 +431,14 @@ describe('Integration Tests', () => {
         />
       );
 
-      const nameButton = screen.getByRole('button', { name: /name/i });
-      await userEvent.click(nameButton);
+      const moduleHeader = screen.getByRole('columnheader', { name: /module/i });
+      await userEvent.click(moduleHeader);
 
       // After sorting by name, Alpha should come before Zebra
-      const moduleNames = screen.getAllByRole('heading', { level: 4 });
-      expect(moduleNames[0]).toHaveTextContent('Alpha Feature');
-      expect(moduleNames[1]).toHaveTextContent('Zebra Feature');
+      const rows = screen.getAllByRole('row');
+      // Skip header row (index 0), check data rows
+      expect(rows[1]).toHaveTextContent('Alpha Feature');
+      expect(rows[2]).toHaveTextContent('Zebra Feature');
     });
 
     it('should show sort direction indicator', async () => {
@@ -443,16 +451,16 @@ describe('Integration Tests', () => {
         />
       );
 
-      const nameButton = screen.getByRole('button', { name: /name/i });
-      await userEvent.click(nameButton);
+      const moduleHeader = screen.getByRole('columnheader', { name: /module/i });
+      await userEvent.click(moduleHeader);
 
       // Should show ascending arrow
-      expect(nameButton).toHaveTextContent('↑');
+      expect(moduleHeader).toHaveTextContent('↑');
 
-      await userEvent.click(nameButton);
+      await userEvent.click(moduleHeader);
 
       // Should show descending arrow
-      expect(nameButton).toHaveTextContent('↓');
+      expect(moduleHeader).toHaveTextContent('↓');
     });
   });
 

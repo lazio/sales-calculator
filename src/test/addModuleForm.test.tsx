@@ -424,7 +424,7 @@ describe('AddModuleForm', () => {
 
       await waitFor(() => {
         const { nameInput } = getInputs();
-        expect(nameInput).toHaveClass('border-red-300');
+        expect(nameInput).toHaveClass('border-destructive');
       });
     });
 

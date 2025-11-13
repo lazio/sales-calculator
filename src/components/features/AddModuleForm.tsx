@@ -1,4 +1,9 @@
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import MultiSelect from '@/components/common/MultiSelect';
 
 interface AddModuleFormProps {
@@ -73,70 +78,63 @@ export default function AddModuleForm({
   };
 
   return (
-    <div className="bg-gray-50 border-2 border-primary-200 rounded-lg p-4 mb-4 animate-fade-in">
-      <h4 className="text-base font-semibold text-gray-800 mb-3">Add New Module</h4>
-
-      <form onSubmit={handleSubmit} className="space-y-3">
+    <Card className="rounded-xl mb-2">
+      <CardHeader className="pb-3">
+        <CardTitle>Add New Module</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-3">
         {/* Module Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Module Name <span className="text-red-500">*</span>
-          </label>
-          <input
+          <Label className="mb-1">
+            Module Name <span className="text-destructive">*</span>
+          </Label>
+          <Input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g., User Authentication"
-            className={`w-full px-3 py-2 border-2 rounded-lg outline-none transition-all ${
-              errors.name
-                ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200'
-                : 'border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200'
-            }`}
+            className={errors.name ? 'border-destructive' : ''}
           />
           {errors.name && (
-            <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+            <p className="mt-1 text-sm text-destructive">{errors.name}</p>
           )}
         </div>
 
         {/* Effort Days */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Effort (days)
-          </label>
+          <Label className="mb-1">Effort (days)</Label>
           <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Design</label>
-              <input
+              <Label className="text-xs text-muted-foreground mb-1">Design</Label>
+              <Input
                 type="number"
                 min="0"
                 value={designDays}
                 onChange={(e) => setDesignDays(Math.max(0, Number(e.target.value)))}
-                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Frontend</label>
-              <input
+              <Label className="text-xs text-muted-foreground mb-1">Frontend</Label>
+              <Input
                 type="number"
                 min="0"
                 value={frontendDays}
                 onChange={(e) => setFrontendDays(Math.max(0, Number(e.target.value)))}
-                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Backend</label>
-              <input
+              <Label className="text-xs text-muted-foreground mb-1">Backend</Label>
+              <Input
                 type="number"
                 min="0"
                 value={backendDays}
                 onChange={(e) => setBackendDays(Math.max(0, Number(e.target.value)))}
-                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none"
               />
             </div>
           </div>
           {errors.days && (
-            <p className="mt-1 text-sm text-red-600">{errors.days}</p>
+            <p className="mt-1 text-sm text-destructive">{errors.days}</p>
           )}
         </div>
 
@@ -163,30 +161,32 @@ export default function AddModuleForm({
         )}
 
         {availablePerformers.length === 0 && (
-          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
+          <Alert>
+            <AlertDescription>
               No performers available. Add rates first or performers will be created with default $1000 rate.
-            </p>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          <button
+          <Button
             type="button"
             onClick={onCancel}
-            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            variant="outline"
+            className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
+            className="flex-1"
           >
             Add Module
-          </button>
+          </Button>
         </div>
       </form>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

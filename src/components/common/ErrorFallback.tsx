@@ -1,4 +1,6 @@
 import { ReactNode } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 interface ErrorFallbackProps {
   title: string;
@@ -12,11 +14,11 @@ interface ErrorFallbackProps {
  */
 export function ErrorFallback({ title, message, onRetry, icon }: ErrorFallbackProps) {
   return (
-    <div className="bg-red-50 border-2 border-red-200 rounded-lg p-6">
+    <Alert variant="destructive">
       <div className="flex items-start gap-3">
         {icon || (
           <svg
-            className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5"
+            className="w-5 h-5 flex-shrink-0 mt-0.5"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -28,19 +30,21 @@ export function ErrorFallback({ title, message, onRetry, icon }: ErrorFallbackPr
           </svg>
         )}
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-red-900 mb-1">{title}</h3>
-          <p className="text-sm text-red-700 mb-3">{message}</p>
+          <AlertTitle>{title}</AlertTitle>
+          <AlertDescription className="mt-1">{message}</AlertDescription>
           {onRetry && (
-            <button
+            <Button
               onClick={onRetry}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+              variant="destructive"
+              size="sm"
+              className="mt-3"
             >
               Try Again
-            </button>
+            </Button>
           )}
         </div>
       </div>
-    </div>
+    </Alert>
   );
 }
 

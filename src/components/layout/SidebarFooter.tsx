@@ -1,4 +1,11 @@
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ProjectModule } from '@/types/project.types';
 import { RateConfig } from '@/types/rates.types';
 
@@ -33,7 +40,6 @@ export default function SidebarFooter({
 }: SidebarFooterProps) {
   const [copied, setCopied] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
-  const [showMarkdownMenu, setShowMarkdownMenu] = useState(false);
 
   const enabledModules = modules.filter(m => m.isEnabled);
   const disabledModules = modules.filter(m => !m.isEnabled);
@@ -100,7 +106,6 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
     try {
       await navigator.clipboard.writeText(markdown);
       setCopiedMarkdown(true);
-      setShowMarkdownMenu(false);
       setTimeout(() => setCopiedMarkdown(false), 2000);
     } catch (err) {
       console.error('Failed to copy markdown:', err);
@@ -141,7 +146,6 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
     try {
       await navigator.clipboard.writeText(markdown);
       setCopiedMarkdown(true);
-      setShowMarkdownMenu(false);
       setTimeout(() => setCopiedMarkdown(false), 2000);
     } catch (err) {
       console.error('Failed to copy markdown:', err);
@@ -253,7 +257,7 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
           design: module.designDays,
           frontend: module.frontendDays,
           backend: module.backendDays,
-          developmentDaysUsed: devDays
+          developmentDaysUsed: maxDevDays
         },
         designCalculations: designPerformerDetails,
         developmentCalculations: developmentPerformerDetails,
@@ -322,68 +326,56 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-
-    setShowMarkdownMenu(false);
   };
 
   return (
-    <div className="border-t border-gray-200 p-3 bg-gray-50">
-      <div className="space-y-2">
+    <div className="border-t p-3 bg-secondary">
+      <div>
         {/* CSV Upload Button */}
-        <button
+        <Button
           onClick={handleCSVUploadClick}
-          className="w-full text-xs py-2 px-3 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors flex items-center justify-center space-x-1.5"
+          variant="outline"
+          size="sm"
+          className="w-full"
         >
-          <span>📁</span>
-          <span>Upload CSV</span>
-        </button>
+          Upload CSV
+        </Button>
 
         {modules.length > 0 && (
           <>
             {/* Copy Summary Button */}
-            <button
+            <Button
               onClick={handleCopyToClipboard}
-              className="w-full text-xs py-2 px-3 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors flex items-center justify-center space-x-1.5"
+              variant="outline"
+              size="sm"
+              className="w-full"
             >
-              <span>{copied ? '✓' : '📋'}</span>
-              <span>{copied ? 'Copied!' : 'Copy Summary'}</span>
-            </button>
+              {copied ? 'Copied!' : 'Copy Summary'}
+            </Button>
 
             {/* Copy Markdown Button with Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowMarkdownMenu(!showMarkdownMenu)}
-                className="w-full text-xs py-2 px-3 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors flex items-center justify-center space-x-1.5"
-              >
-                <span>{copiedMarkdown ? '✓' : '📝'}</span>
-                <span>{copiedMarkdown ? 'Copied!' : 'Copy Markdown'}</span>
-                <span className="text-xs">▼</span>
-              </button>
-
-              {showMarkdownMenu && (
-                <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-gray-300 rounded shadow-lg overflow-hidden">
-                  <button
-                    onClick={handleCopyMarkdownSimple}
-                    className="w-full text-left text-xs py-2 px-3 hover:bg-gray-50 text-gray-700"
-                  >
-                    Simple (modules only)
-                  </button>
-                  <button
-                    onClick={handleCopyMarkdownFull}
-                    className="w-full text-left text-xs py-2 px-3 hover:bg-gray-50 text-gray-700 border-t border-gray-200"
-                  >
-                    Full (with pricing)
-                  </button>
-                  <button
-                    onClick={handleSaveCalculations}
-                    className="w-full text-left text-xs py-2 px-3 hover:bg-gray-50 text-gray-700 border-t border-gray-200 flex items-center space-x-1.5"
-                  >
-                    <span>💾</span>
-                    <span>Save All Calculations</span>
-                  </button>
-                </div>
-              )}
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  {copiedMarkdown ? 'Copied!' : 'Copy Markdown'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="top">
+                <DropdownMenuItem onClick={handleCopyMarkdownSimple}>
+                  Simple (modules only)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCopyMarkdownFull}>
+                  Full (with pricing)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSaveCalculations}>
+                  Save All Calculations
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         )}
       </div>

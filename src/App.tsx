@@ -7,9 +7,10 @@ import RateConfiguration from '@/components/rates/RateConfiguration';
 import CSVImporter from '@/components/csv/CSVImporter';
 import ModuleList from '@/components/features/ModuleList';
 import WorkOverlapSlider from '@/components/overlap/WorkOverlapSlider';
-import DiscountInput from '@/components/discount/DiscountInput';
+import DiscountModal from '@/components/discount/DiscountModal';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { CSVImportErrorFallback, RateConfigErrorFallback, CalculationErrorFallback } from '@/components/common/ErrorFallback';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DEFAULT_RATES } from '@/types/rates.types';
 import { ProjectModule } from '@/types/project.types';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -38,8 +39,8 @@ function App() {
   // Discount percentage (0-100)
   const [discount, setDiscount] = useState<number>(0);
 
-  // Discount section visibility
-  const [showDiscount, setShowDiscount] = useState<boolean>(false);
+  // Discount modal visibility
+  const [showDiscountModal, setShowDiscountModal] = useState<boolean>(false);
 
   // Currency symbol ($ for USD, € for EUR) - persisted in localStorage
   const [currency, setCurrency] = useLocalStorage<'$' | '€'>('quote-calculator-currency', '$');
@@ -145,7 +146,7 @@ function App() {
   };
 
   const handlePriceClick = () => {
-    setShowDiscount(true);
+    setShowDiscountModal(true);
   };
 
   const handleCurrencyToggle = () => {
@@ -158,36 +159,44 @@ function App() {
       case 'csv-import':
         return (
           <div className="max-w-3xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">CSV Import</h2>
-              <ErrorBoundary fallback={<CSVImportErrorFallback />}>
-                <CSVImporter onImport={handleCSVImport} />
-              </ErrorBoundary>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>CSV Import</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ErrorBoundary fallback={<CSVImportErrorFallback />}>
+                  <CSVImporter onImport={handleCSVImport} />
+                </ErrorBoundary>
+              </CardContent>
+            </Card>
           </div>
         );
 
       case 'rates':
         return (
           <div className="max-w-3xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Rate Configuration</h2>
-              {modules.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Import a CSV file first to configure rates</p>
-                </div>
-              ) : (
-                <ErrorBoundary fallback={<RateConfigErrorFallback />}>
-                  <RateConfiguration
-                    rates={visibleRates}
-                    onRateChange={handleRateChange}
-                    onRateDelete={handleRateDelete}
-                    onDiscountChange={handlePerformerDiscountChange}
-                    currency={currency}
-                  />
-                </ErrorBoundary>
-              )}
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Rate Configuration</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {modules.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Import a CSV file first to configure rates</p>
+                  </div>
+                ) : (
+                  <ErrorBoundary fallback={<RateConfigErrorFallback />}>
+                    <RateConfiguration
+                      rates={visibleRates}
+                      onRateChange={handleRateChange}
+                      onRateDelete={handleRateDelete}
+                      onDiscountChange={handlePerformerDiscountChange}
+                      currency={currency}
+                    />
+                  </ErrorBoundary>
+                )}
+              </CardContent>
+            </Card>
           </div>
         );
 
@@ -195,23 +204,25 @@ function App() {
         return (
           <div className="max-w-6xl mx-auto">
             {modules.length > 0 ? (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Project Modules</h2>
-                <ModuleList
-                  modules={modules}
-                  onToggle={handleModuleToggle}
-                  onBulkToggle={handleBulkToggle}
-                  onAddModule={handleAddModule}
-                  rates={rates}
-                  overlapDays={workOverlap}
-                  currency={currency}
-                />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Modules</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ModuleList
+                    modules={modules}
+                    onToggle={handleModuleToggle}
+                    onBulkToggle={handleBulkToggle}
+                    onAddModule={handleAddModule}
+                    rates={rates}
+                    overlapDays={workOverlap}
+                    currency={currency}
+                  />
 
-                {/* Overlap and Discount controls */}
-                <div className="mt-6 space-y-4">
+                  {/* Overlap control */}
                   {hasBothDesignAndDevelopment && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Work Overlap</h3>
+                    <div className="mt-6">
+                      <h3 className="mb-2">Work Overlap</h3>
                       <WorkOverlapSlider
                         overlapDays={workOverlap}
                         maxOverlapDays={maxOverlapDays}
@@ -219,20 +230,15 @@ function App() {
                       />
                     </div>
                   )}
-
-                  {showDiscount && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Discount</h3>
-                      <DiscountInput discount={discount} onDiscountChange={handleDiscountChange} />
-                    </div>
-                  )}
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ) : (
-              <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
-                <p className="text-xl text-gray-500">Import a CSV file to get started</p>
-                <p className="text-sm text-gray-400 mt-2">Use the CSV Import section to upload your project modules</p>
-              </div>
+              <Card className="text-center">
+                <CardContent className="py-12">
+                  <p className="text-xl text-muted-foreground">Import a CSV file to get started</p>
+                  <p className="text-sm text-muted-foreground mt-2">Use the CSV Import section to upload your project modules</p>
+                </CardContent>
+              </Card>
             )}
           </div>
         );
@@ -263,10 +269,12 @@ function App() {
                 />
               </ErrorBoundary>
             ) : (
-              <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
-                <p className="text-xl text-gray-500">Import a CSV file to see the work breakdown</p>
-                <p className="text-sm text-gray-400 mt-2">Use the CSV Import section to upload your project modules</p>
-              </div>
+              <Card className="text-center">
+                <CardContent className="py-12">
+                  <p className="text-xl text-muted-foreground">Import a CSV file to see the work breakdown</p>
+                  <p className="text-sm text-muted-foreground mt-2">Use the CSV Import section to upload your project modules</p>
+                </CardContent>
+              </Card>
             )}
           </div>
         );
@@ -277,31 +285,40 @@ function App() {
   };
 
   return (
-    <AppLayout
-      sidebarNav={
-        <SidebarNav
-          activeSection={activeSection}
-          onSectionChange={setActiveSection}
-        />
-      }
-      sidebarFooter={
-        <SidebarFooter
-          modules={modules}
-          rates={rates}
-          totalQuote={quote.totalQuote}
-          totalDays={quote.totalDays}
-          designDays={quote.designDays}
-          developmentDays={quote.developmentDays}
-          designCost={quote.designCost}
-          developmentCost={quote.developmentCost}
-          discountAmount={quote.discountAmount}
-          monthlyFee={quote.monthlyFee}
-          currency={currency}
-          onNavigateToCSVImport={() => setActiveSection('csv-import')}
-        />
-      }
-      mainContent={renderMainContent()}
-    />
+    <>
+      <AppLayout
+        sidebarNav={
+          <SidebarNav
+            activeSection={activeSection}
+            onSectionChange={setActiveSection}
+          />
+        }
+        sidebarFooter={
+          <SidebarFooter
+            modules={modules}
+            rates={rates}
+            totalQuote={quote.totalQuote}
+            totalDays={quote.totalDays}
+            designDays={quote.designDays}
+            developmentDays={quote.developmentDays}
+            designCost={quote.designCost}
+            developmentCost={quote.developmentCost}
+            discountAmount={quote.discountAmount}
+            monthlyFee={quote.monthlyFee}
+            currency={currency}
+            onNavigateToCSVImport={() => setActiveSection('csv-import')}
+          />
+        }
+        mainContent={renderMainContent()}
+      />
+
+      <DiscountModal
+        open={showDiscountModal}
+        onOpenChange={setShowDiscountModal}
+        discount={discount}
+        onDiscountChange={handleDiscountChange}
+      />
+    </>
   );
 }
 

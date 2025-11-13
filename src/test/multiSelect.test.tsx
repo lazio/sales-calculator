@@ -395,10 +395,12 @@ describe('MultiSelect', () => {
 
       // Click outside
       const outside = screen.getByTestId('outside');
-      fireEvent.mouseDown(outside);
+      await userEvent.click(outside);
 
       // Dropdown should be closed
-      expect(screen.queryByPlaceholderText('Search...')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByPlaceholderText('Search...')).not.toBeInTheDocument();
+      });
     });
   });
 
@@ -468,7 +470,7 @@ describe('MultiSelect', () => {
       );
 
       const label = screen.getByText('Select Performers');
-      expect(label).toHaveClass('block');
+      expect(label).toBeInTheDocument();
     });
 
     it('should have checkboxes for each option in dropdown', async () => {

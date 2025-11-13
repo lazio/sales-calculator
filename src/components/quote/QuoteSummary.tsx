@@ -1,6 +1,9 @@
-import { useState } from 'react';
 import { ProjectModule } from '@/types/project.types';
 import { RateConfig } from '@/types/rates.types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Info, Palette, Code, Calendar, DollarSign } from 'lucide-react';
 
 interface QuoteSummaryProps {
   totalQuote: number;
@@ -41,9 +44,6 @@ export default function QuoteSummary({
 }: QuoteSummaryProps) {
   const displayTotal = finalTotal !== undefined ? finalTotal : totalQuote;
   const roundedTotal = Math.round(displayTotal / 500) * 500;
-  const [copied, setCopied] = useState(false);
-  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
 
   // Calculate rate discounts
   const ratesWithDiscounts = rates.filter(r => (r.discount || 0) > 0);
@@ -80,7 +80,6 @@ export default function QuoteSummary({
   const hasRateDiscounts = rateDiscountCount > 0 && rateDiscountAmount > 0;
 
   const enabledModules = modules.filter(m => m.isEnabled);
-  const disabledModules = modules.filter(m => !m.isEnabled);
 
   // Calculate max possible overlap
   const totalDesign = enabledModules.reduce((sum, m) => sum + m.designDays, 0);
@@ -92,438 +91,168 @@ export default function QuoteSummary({
   const isSequential = overlapDays === 0;
   const overlapWeeks = Math.floor(overlapDays / 5);
 
-  const handleCopyToClipboard = async () => {
-    const text = `
-PROJECT QUOTE SUMMARY
-=====================
-
-Total: ~${currency}${roundedTotal.toLocaleString()}
-${discountAmount > 0 ? `Original: ${currency}${totalQuote.toLocaleString()}\nDiscount: -${currency}${discountAmount.toLocaleString()}\n` : ''}
-Timeline: ${totalDays} working days
-
-WORK BREAKDOWN
---------------
-Design Effort: ${designDays} days (${currency}${designCost.toLocaleString()})
-Development Effort: ${developmentDays} days (${currency}${developmentCost.toLocaleString()})
-Total Effort: ${designDays + developmentDays} days completed in ${totalDays} calendar days
-
-TEAM RATES
-----------
-Monthly Rate Card: ${currency}${monthlyFee.toLocaleString()}
-
-Generated with Project Quote Calculator
-    `.trim();
-
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-  };
-
-  const handleCopyMarkdownSimple = async () => {
-    const markdown = `# Project Quote
-
-## Timeline
-- **Total Timeline:** ${totalDays} working days
-- **Design Effort:** ${designDays} days
-- **Development Effort:** ${developmentDays} days
-
-## Modules
-
-| Module | Design | Frontend | Backend | Timeline | Status |
-|--------|--------|----------|---------|----------|--------|
-${enabledModules.map(m =>
-  `| ${m.name} | ${m.designDays}d | ${m.frontendDays}d | ${m.backendDays}d | ${Math.max(m.designDays, m.frontendDays, m.backendDays)}d | ✓ |`
-).join('\n')}
-${disabledModules.length > 0 ? disabledModules.map(m =>
-  `| ~~${m.name}~~ | ${m.designDays}d | ${m.frontendDays}d | ${m.backendDays}d | ${Math.max(m.designDays, m.frontendDays, m.backendDays)}d | ✗ |`
-).join('\n') : ''}
-
----
-*Generated with Project Quote Calculator*
-`;
-
-    try {
-      await navigator.clipboard.writeText(markdown);
-      setCopiedMarkdown(true);
-      setShowExportMenu(false);
-      setTimeout(() => setCopiedMarkdown(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy markdown:', err);
-    }
-  };
-
-  const handleCopyMarkdownFull = async () => {
-    const markdown = `# Project Quote Summary
-
-## Budget Overview
-- **Total Quote:** ~${currency}${roundedTotal.toLocaleString()}
-${discountAmount > 0 ? `- **Original Price:** ${currency}${totalQuote.toLocaleString()}\n- **Discount:** -${currency}${discountAmount.toLocaleString()}\n` : ''}
-- **Timeline:** ${totalDays} working days
-
-## Work Breakdown
-- **Design Phase:** ${designDays} days - ${currency}${designCost.toLocaleString()}
-- **Development Phase:** ${developmentDays} days - ${currency}${developmentCost.toLocaleString()}
-- **Total Effort:** ${designDays + developmentDays} days completed in ${totalDays} calendar days
-
-## Team Rates
-- **Monthly Rate Card:** ${currency}${monthlyFee.toLocaleString()}
-
-## Module Details
-
-| Module | Design | Frontend | Backend | Timeline | Design Team | Development Team | Status |
-|--------|--------|----------|---------|----------|-------------|------------------|--------|
-${enabledModules.map(m =>
-  `| ${m.name} | ${m.designDays}d | ${m.frontendDays}d | ${m.backendDays}d | ${Math.max(m.designDays, m.frontendDays, m.backendDays)}d | ${m.designPerformers.join(', ') || 'N/A'} | ${m.developmentPerformers.join(', ') || 'N/A'} | ✓ |`
-).join('\n')}
-${disabledModules.length > 0 ? disabledModules.map(m =>
-  `| ~~${m.name}~~ | ${m.designDays}d | ${m.frontendDays}d | ${m.backendDays}d | ${Math.max(m.designDays, m.frontendDays, m.backendDays)}d | ${m.designPerformers.join(', ') || 'N/A'} | ${m.developmentPerformers.join(', ') || 'N/A'} | ✗ |`
-).join('\n') : ''}
-
----
-*Generated with Project Quote Calculator*
-`;
-
-    try {
-      await navigator.clipboard.writeText(markdown);
-      setCopiedMarkdown(true);
-      setShowExportMenu(false);
-      setTimeout(() => setCopiedMarkdown(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy markdown:', err);
-    }
-  };
-
-  const handleSaveCalculations = () => {
-    const BUSINESS_DAYS_PER_MONTH = 20;
-
-    // Build detailed calculations
-    const moduleCalculations = enabledModules.map(module => {
-      const designPerformerDetails = module.designPerformers.map(performer => {
-        const rate = rates.find(r => r.role === performer);
-        const monthlyRate = rate?.monthlyRate || 0;
-        const dailyRate = monthlyRate / BUSINESS_DAYS_PER_MONTH;
-        const discount = rate?.discount || 0;
-        const discountedDailyRate = dailyRate * (1 - discount / 100);
-        const cost = discountedDailyRate * module.designDays;
-
-        return {
-          performer,
-          monthlyRate,
-          dailyRate: Math.round(dailyRate * 100) / 100,
-          discount: discount > 0 ? `${discount}%` : 'None',
-          discountedDailyRate: Math.round(discountedDailyRate * 100) / 100,
-          days: module.designDays,
-          cost: Math.round(cost * 100) / 100,
-          calculation: `${monthlyRate} / ${BUSINESS_DAYS_PER_MONTH} = ${Math.round(dailyRate * 100) / 100} per day${discount > 0 ? ` * ${1 - discount / 100} (discount)` : ''} * ${module.designDays} days = ${Math.round(cost * 100) / 100}`
-        };
-      });
-
-      const maxDevDays = Math.max(module.frontendDays, module.backendDays);
-      const developmentPerformerDetails = module.developmentPerformers.map(performer => {
-        const rate = rates.find(r => r.role === performer);
-        const monthlyRate = rate?.monthlyRate || 0;
-        const dailyRate = monthlyRate / BUSINESS_DAYS_PER_MONTH;
-        const discount = rate?.discount || 0;
-        const discountedDailyRate = dailyRate * (1 - discount / 100);
-
-        // Determine performer type to calculate correct days
-        const performerName = performer.toLowerCase();
-        let devDays: number;
-        let performerType: string;
-
-        if (performerName.includes('front-end') || performerName.includes('frontend') ||
-            performerName.match(/\bfe\b/) || performerName.match(/\bfront\b/)) {
-          devDays = module.frontendDays;
-          performerType = 'frontend';
-        } else if (performerName.includes('back-end') || performerName.includes('backend') ||
-                   performerName.match(/\bbe\b/) || performerName.match(/\bback\b/)) {
-          devDays = module.backendDays;
-          performerType = 'backend';
-        } else {
-          // QA, PM, and other roles work for the full development duration
-          devDays = maxDevDays;
-          performerType = 'other';
-        }
-
-        const cost = discountedDailyRate * devDays;
-
-        return {
-          performer,
-          monthlyRate,
-          dailyRate: Math.round(dailyRate * 100) / 100,
-          discount: discount > 0 ? `${discount}%` : 'None',
-          discountedDailyRate: Math.round(discountedDailyRate * 100) / 100,
-          days: devDays,
-          note: performerType === 'frontend' ? `Frontend developer works ${module.frontendDays}d` :
-                performerType === 'backend' ? `Backend developer works ${module.backendDays}d` :
-                `Max of frontend (${module.frontendDays}d) and backend (${module.backendDays}d)`,
-          cost: Math.round(cost * 100) / 100,
-          calculation: `${monthlyRate} / ${BUSINESS_DAYS_PER_MONTH} = ${Math.round(dailyRate * 100) / 100} per day${discount > 0 ? ` * ${1 - discount / 100} (discount)` : ''} * ${devDays} days = ${Math.round(cost * 100) / 100}`
-        };
-      });
-
-      const moduleTotalCost = [
-        ...designPerformerDetails,
-        ...developmentPerformerDetails
-      ].reduce((sum, p) => sum + p.cost, 0);
-
-      return {
-        name: module.name,
-        isEnabled: module.isEnabled,
-        effort: {
-          design: module.designDays,
-          frontend: module.frontendDays,
-          backend: module.backendDays,
-          developmentDaysUsed: devDays
-        },
-        designCalculations: designPerformerDetails,
-        developmentCalculations: developmentPerformerDetails,
-        moduleTotalCost: Math.round(moduleTotalCost * 100) / 100
-      };
-    });
-
-    const calculations = {
-      timestamp: new Date().toISOString(),
-      currency,
-      summary: {
-        totalQuote: Math.round(totalQuote * 100) / 100,
-        roundedTotal,
-        discountAmount: Math.round(discountAmount * 100) / 100,
-        finalTotal: Math.round(displayTotal * 100) / 100,
-        timeline: {
-          totalDays,
-          designDays,
-          developmentDays,
-          overlapDays: overlapDays === Infinity ? 'Full parallel' : overlapDays,
-          totalEffortDays: designDays + developmentDays
-        }
-      },
-      rates: rates.map(r => ({
-        role: r.role,
-        monthlyRate: r.monthlyRate,
-        dailyRate: Math.round((r.monthlyRate / BUSINESS_DAYS_PER_MONTH) * 100) / 100,
-        discount: r.discount || 0,
-        discountedDailyRate: Math.round((r.monthlyRate / BUSINESS_DAYS_PER_MONTH) * (1 - (r.discount || 0) / 100) * 100) / 100
-      })),
-      discounts: {
-        perPerformerDiscounts: ratesWithDiscounts.map(r => ({
-          role: r.role,
-          discount: `${r.discount}%`,
-          savings: Math.round((r.monthlyRate / BUSINESS_DAYS_PER_MONTH) * (r.discount || 0) / 100 * 100) / 100 + ' per day'
-        })),
-        totalRateDiscountAmount: hasRateDiscounts ? Math.round(rateDiscountAmount * 100) / 100 : 0,
-        projectDiscountAmount: Math.round(discountAmount * 100) / 100,
-        totalDiscounts: hasRateDiscounts ? Math.round((rateDiscountAmount + discountAmount) * 100) / 100 : Math.round(discountAmount * 100) / 100
-      },
-      costs: {
-        designCost: Math.round(designCost * 100) / 100,
-        developmentCost: Math.round(developmentCost * 100) / 100,
-        totalBeforeDiscounts: hasRateDiscounts ? Math.round(quoteWithoutRateDiscounts * 100) / 100 : Math.round(totalQuote * 100) / 100,
-        afterRateDiscounts: Math.round(totalQuote * 100) / 100,
-        afterProjectDiscount: Math.round(displayTotal * 100) / 100
-      },
-      modules: moduleCalculations,
-      disabledModules: disabledModules.map(m => ({
-        name: m.name,
-        effort: {
-          design: m.designDays,
-          frontend: m.frontendDays,
-          backend: m.backendDays
-        }
-      }))
-    };
-
-    // Create and download file
-    const blob = new Blob([JSON.stringify(calculations, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `quote-calculations-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    setShowExportMenu(false);
-  };
 
   return (
-    <div className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl shadow-xl p-8 animate-fade-in">
+    <div className="space-y-4">
       {/* Work Breakdown */}
       {totalDays > 0 && (
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-white">Work Breakdown</h3>
-            <div className="flex items-center gap-2 text-sm text-white/80">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span className="group relative cursor-help">
-                {isFullyParallel ? 'Fully parallel work' : isSequential ? 'Sequential work' : `${overlapWeeks}w overlap`}
-                <span className="invisible group-hover:visible absolute left-0 top-6 w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10">
-                  {isFullyParallel
-                    ? 'All modules work in parallel. Design and development happen simultaneously across all modules.'
-                    : isSequential
-                    ? 'Work is sequential. Development starts after design completes.'
-                    : `Development starts ${overlapWeeks} week${overlapWeeks !== 1 ? 's' : ''} after design begins. All modules work in parallel.`}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Work Breakdown</CardTitle>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Info className="h-4 w-4" />
+                <span className="group relative cursor-help">
+                  {isFullyParallel ? 'Fully parallel work' : isSequential ? 'Sequential work' : `${overlapWeeks}w overlap`}
                 </span>
-              </span>
+              </div>
             </div>
-          </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Work Summary */}
+            <div className="space-y-2">
+              {designDays > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Palette className="h-4 w-4" />
+                    Design Effort
+                  </span>
+                  <Badge variant="secondary">{designDays} days</Badge>
+                </div>
+              )}
 
-          {/* Work Summary */}
-          <div className="space-y-2">
-            {designDays > 0 && (
-              <div className="flex items-center justify-between text-white/90">
-                <span className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-purple-400"></span>
-                  Design Effort
-                </span>
-                <span className="font-semibold">{designDays} days</span>
-              </div>
-            )}
-
-            {developmentDays > 0 && (
-              <div className="flex items-center justify-between text-white/90">
-                <span className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-blue-400"></span>
-                  Development Effort
-                </span>
-                <span className="font-semibold">{developmentDays} days</span>
-              </div>
-            )}
-          </div>
-
-          {/* Total Timeline and Monthly Rate */}
-          <div className="pt-3 mt-3 border-t border-white/20 grid grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-white/90 text-sm">Total Project Timeline</span>
-                <span className="text-white font-bold text-lg">{totalDays} days</span>
-              </div>
-              <p className="text-white/60 text-xs">
-                {designDays + developmentDays} total effort days completed in {totalDays} calendar days due to parallel work
-              </p>
+              {developmentDays > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Code className="h-4 w-4" />
+                    Development Effort
+                  </span>
+                  <Badge variant="secondary">{developmentDays} days</Badge>
+                </div>
+              )}
             </div>
-            <div className="border-l border-white/20 pl-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-white/90 text-sm">Monthly Rate Card</span>
-                <span className="text-white font-bold text-lg">{currency}{monthlyFee.toLocaleString()}</span>
+
+            <Separator />
+
+            {/* Total Timeline and Monthly Rate */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  Total Project Timeline
+                </div>
+                <div className="text-2xl font-bold">{totalDays} days</div>
+                <p className="text-xs text-muted-foreground">
+                  {designDays + developmentDays} total effort days completed in {totalDays} calendar days due to parallel work
+                </p>
               </div>
-              <p className="text-white/60 text-xs">
-                Total monthly fee for all performers
-              </p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <DollarSign className="h-4 w-4" />
+                  Monthly Rate Card
+                </div>
+                <div className="text-2xl font-bold">{currency}{monthlyFee.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">
+                  Total monthly fee for all performers
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Price Breakdown */}
       {(designDays > 0 || developmentDays > 0) && (
-        <div className="mb-8">
-          <div className={`grid gap-4 ${designDays > 0 && developmentDays > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {/* Design Phase */}
-            {designDays > 0 && (
-              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5">
-                <div className="flex justify-between items-center mb-1">
-                  <h4 className="text-lg font-semibold text-white">Design Phase</h4>
-                  <span className="text-2xl font-bold text-white">
-                    {currency}{designCost.toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-sm text-white/80">{designDays} days</p>
-              </div>
-            )}
+        <div className={`grid gap-4 ${designDays > 0 && developmentDays > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {/* Design Phase */}
+          {designDays > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Palette className="h-5 w-5" />
+                  Design Phase
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{currency}{designCost.toLocaleString()}</div>
+                <p className="text-sm text-muted-foreground mt-1">{designDays} days</p>
+              </CardContent>
+            </Card>
+          )}
 
-            {/* Development Phase */}
-            {developmentDays > 0 && (
-              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5">
-                <div className="flex justify-between items-center mb-1">
-                  <h4 className="text-lg font-semibold text-white">Development Phase</h4>
-                  <span className="text-2xl font-bold text-white">
-                    {currency}{developmentCost.toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-sm text-white/80">{developmentDays} days</p>
-              </div>
-            )}
-          </div>
+          {/* Development Phase */}
+          {developmentDays > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Code className="h-5 w-5" />
+                  Development Phase
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{currency}{developmentCost.toLocaleString()}</div>
+                <p className="text-sm text-muted-foreground mt-1">{developmentDays} days</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
       {/* Total Quote Section */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/20">
-        <h2 className="text-base font-bold text-white mb-3">
-          Total Quote
-        </h2>
-
-        {/* Show discount breakdown if rate discounts or global discounts exist */}
-        {(hasRateDiscounts || discountAmount > 0) && (
-          <div className="space-y-1 mb-3 text-sm">
-            <div className="flex items-center justify-between text-white/80">
-              <span>Full price</span>
-              <span>{currency}{quoteWithoutRateDiscounts.toLocaleString()}</span>
-            </div>
-            {hasRateDiscounts && (
-              <div className="flex items-center justify-between text-green-400">
-                <span className="flex items-center gap-1">
-                  <span>↓</span>
-                  <span>Rate discounts</span>
-                  <span className="text-xs text-green-300">({rateDiscountCount})</span>
-                </span>
-                <span>-{currency}{rateDiscountAmount.toLocaleString()}</span>
+      <Card>
+        <CardHeader>
+          <CardTitle>Total Quote</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Show discount breakdown if rate discounts or global discounts exist */}
+          {(hasRateDiscounts || discountAmount > 0) && (
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Full price</span>
+                <span>{currency}{quoteWithoutRateDiscounts.toLocaleString()}</span>
               </div>
-            )}
-            {discountAmount > 0 && (
-              <div className="flex items-center justify-between text-green-400">
-                <span className="flex items-center gap-1">
-                  <span>↓</span>
+              {hasRateDiscounts && (
+                <div className="flex items-center justify-between text-sm text-green-600 dark:text-green-400">
+                  <span className="flex items-center gap-1">
+                    <span>Rate discounts</span>
+                    <Badge variant="outline" className="ml-1">{rateDiscountCount}</Badge>
+                  </span>
+                  <span>-{currency}{rateDiscountAmount.toLocaleString()}</span>
+                </div>
+              )}
+              {discountAmount > 0 && (
+                <div className="flex items-center justify-between text-sm text-green-600 dark:text-green-400">
                   <span>Project discount</span>
-                </span>
-                <span>-{currency}{discountAmount.toLocaleString()}</span>
-              </div>
-            )}
-            <div className="border-t border-white/20 pt-1 mt-1"></div>
-          </div>
-        )}
-
-        <div className="text-3xl font-bold text-white flex items-center gap-1">
-          <span>~</span>
-          {onCurrencyToggle ? (
-            <span
-              onClick={onCurrencyToggle}
-              className="transition-colors cursor-pointer"
-              title="Click to toggle currency"
-            >
-              {currency}
-            </span>
-          ) : (
-            <span>{currency}</span>
+                  <span>-{currency}{discountAmount.toLocaleString()}</span>
+                </div>
+              )}
+              <Separator />
+            </div>
           )}
-          <span
-            className={onPriceClick ? 'hover:text-white/90 transition-colors cursor-pointer' : ''}
-            onClick={onPriceClick}
-            title={onPriceClick && discountAmount === 0 ? 'Click to add discount' : undefined}
-          >
-            {roundedTotal.toLocaleString()}
-          </span>
-        </div>
-      </div>
 
+          <div className="text-4xl font-bold flex items-center gap-1">
+            <span>~</span>
+            {onCurrencyToggle ? (
+              <span
+                onClick={onCurrencyToggle}
+                className="cursor-pointer"
+                title="Click to toggle currency"
+              >
+                {currency}
+              </span>
+            ) : (
+              <span>{currency}</span>
+            )}
+            <span
+              className={onPriceClick ? 'cursor-pointer' : ''}
+              onClick={onPriceClick}
+              title={onPriceClick && discountAmount === 0 ? 'Click to add discount' : undefined}
+            >
+              {roundedTotal.toLocaleString()}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
