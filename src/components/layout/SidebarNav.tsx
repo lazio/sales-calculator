@@ -10,7 +10,6 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { id: 'csv-import', label: 'CSV Import', icon: '📁' },
   { id: 'rates', label: 'Rates', icon: '💰' },
   { id: 'modules', label: 'Modules', icon: '📦' },
   { id: 'work-breakdown', label: 'Work Breakdown', icon: '📊' },

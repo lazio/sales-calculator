@@ -159,7 +159,7 @@ function App() {
         return (
           <div className="max-w-3xl mx-auto">
             <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Import CSV File</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">CSV Import</h2>
               <ErrorBoundary fallback={<CSVImportErrorFallback />}>
                 <CSVImporter onImport={handleCSVImport} />
               </ErrorBoundary>
@@ -297,6 +297,7 @@ function App() {
           discountAmount={quote.discountAmount}
           monthlyFee={quote.monthlyFee}
           currency={currency}
+          onNavigateToCSVImport={() => setActiveSection('csv-import')}
         />
       }
       mainContent={renderMainContent()}

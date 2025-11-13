@@ -14,6 +14,7 @@ interface SidebarFooterProps {
   discountAmount: number;
   monthlyFee: number;
   currency: '$' | '€';
+  onNavigateToCSVImport?: () => void;
 }
 
 export default function SidebarFooter({
@@ -28,6 +29,7 @@ export default function SidebarFooter({
   discountAmount,
   monthlyFee,
   currency,
+  onNavigateToCSVImport,
 }: SidebarFooterProps) {
   const [copied, setCopied] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
@@ -36,6 +38,10 @@ export default function SidebarFooter({
   const enabledModules = modules.filter(m => m.isEnabled);
   const disabledModules = modules.filter(m => !m.isEnabled);
   const roundedTotal = Math.round((totalQuote - discountAmount) / 500) * 500;
+
+  const handleCSVUploadClick = () => {
+    onNavigateToCSVImport?.();
+  };
 
   const handleCopyToClipboard = async () => {
     const text = `
@@ -320,57 +326,66 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
     setShowMarkdownMenu(false);
   };
 
-  if (modules.length === 0) {
-    return null;
-  }
-
   return (
     <div className="border-t border-gray-200 p-3 bg-gray-50">
       <div className="space-y-2">
-        {/* Copy Summary Button */}
+        {/* CSV Upload Button */}
         <button
-          onClick={handleCopyToClipboard}
+          onClick={handleCSVUploadClick}
           className="w-full text-xs py-2 px-3 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors flex items-center justify-center space-x-1.5"
         >
-          <span>{copied ? '✓' : '📋'}</span>
-          <span>{copied ? 'Copied!' : 'Copy Summary'}</span>
+          <span>📁</span>
+          <span>Upload CSV</span>
         </button>
 
-        {/* Copy Markdown Button with Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setShowMarkdownMenu(!showMarkdownMenu)}
-            className="w-full text-xs py-2 px-3 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors flex items-center justify-center space-x-1.5"
-          >
-            <span>{copiedMarkdown ? '✓' : '📝'}</span>
-            <span>{copiedMarkdown ? 'Copied!' : 'Copy Markdown'}</span>
-            <span className="text-xs">▼</span>
-          </button>
+        {modules.length > 0 && (
+          <>
+            {/* Copy Summary Button */}
+            <button
+              onClick={handleCopyToClipboard}
+              className="w-full text-xs py-2 px-3 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors flex items-center justify-center space-x-1.5"
+            >
+              <span>{copied ? '✓' : '📋'}</span>
+              <span>{copied ? 'Copied!' : 'Copy Summary'}</span>
+            </button>
 
-          {showMarkdownMenu && (
-            <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-gray-300 rounded shadow-lg overflow-hidden">
+            {/* Copy Markdown Button with Dropdown */}
+            <div className="relative">
               <button
-                onClick={handleCopyMarkdownSimple}
-                className="w-full text-left text-xs py-2 px-3 hover:bg-gray-50 text-gray-700"
+                onClick={() => setShowMarkdownMenu(!showMarkdownMenu)}
+                className="w-full text-xs py-2 px-3 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors flex items-center justify-center space-x-1.5"
               >
-                Simple (modules only)
+                <span>{copiedMarkdown ? '✓' : '📝'}</span>
+                <span>{copiedMarkdown ? 'Copied!' : 'Copy Markdown'}</span>
+                <span className="text-xs">▼</span>
               </button>
-              <button
-                onClick={handleCopyMarkdownFull}
-                className="w-full text-left text-xs py-2 px-3 hover:bg-gray-50 text-gray-700 border-t border-gray-200"
-              >
-                Full (with pricing)
-              </button>
-              <button
-                onClick={handleSaveCalculations}
-                className="w-full text-left text-xs py-2 px-3 hover:bg-gray-50 text-gray-700 border-t border-gray-200 flex items-center space-x-1.5"
-              >
-                <span>💾</span>
-                <span>Save All Calculations</span>
-              </button>
+
+              {showMarkdownMenu && (
+                <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-gray-300 rounded shadow-lg overflow-hidden">
+                  <button
+                    onClick={handleCopyMarkdownSimple}
+                    className="w-full text-left text-xs py-2 px-3 hover:bg-gray-50 text-gray-700"
+                  >
+                    Simple (modules only)
+                  </button>
+                  <button
+                    onClick={handleCopyMarkdownFull}
+                    className="w-full text-left text-xs py-2 px-3 hover:bg-gray-50 text-gray-700 border-t border-gray-200"
+                  >
+                    Full (with pricing)
+                  </button>
+                  <button
+                    onClick={handleSaveCalculations}
+                    className="w-full text-left text-xs py-2 px-3 hover:bg-gray-50 text-gray-700 border-t border-gray-200 flex items-center space-x-1.5"
+                  >
+                    <span>💾</span>
+                    <span>Save All Calculations</span>
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
