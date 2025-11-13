@@ -13,6 +13,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter,
 } from '@/components/ui/table';
 import {
   DropdownMenu,
@@ -20,7 +21,13 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, X, Settings2 } from 'lucide-react';
+import { Plus, X, Settings2, Info } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ModuleListProps {
   modules: ProjectModule[];
@@ -67,6 +74,16 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModul
       .filter(m => m.isEnabled)
       .reduce((sum, m) => sum + calculateModulePrice(m, rates), 0);
   }, [modules, rates]);
+
+  // Calculate totals for design, frontend, backend
+  const totals = useMemo(() => {
+    const enabledModules = modules.filter(m => m.isEnabled);
+    return {
+      design: enabledModules.reduce((sum, m) => sum + m.designDays, 0),
+      frontend: enabledModules.reduce((sum, m) => sum + m.frontendDays, 0),
+      backend: enabledModules.reduce((sum, m) => sum + m.backendDays, 0),
+    };
+  }, [modules]);
 
   // Sort modules
   const sortedModules = useMemo(() => {
@@ -126,9 +143,25 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModul
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex items-center justify-between gap-4 mb-2">
-        <p className="text-sm text-muted-foreground">
-          {modules.filter(m => m.isEnabled).length} of {modules.length} enabled • {timelineDays} days timeline • {effortDays} days effort
-        </p>
+        <TooltipProvider>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-muted-foreground">
+              {modules.filter(m => m.isEnabled).length} of {modules.length} enabled • {timelineDays} days timeline • {effortDays} days effort
+            </p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm">
+                  <strong>Timeline:</strong> Actual project duration ({timelineDays} days) with parallel work.
+                  <br />
+                  <strong>Effort:</strong> Total person-days ({effortDays} days) across all modules.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
         <div className="flex gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -311,6 +344,17 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModul
               );
             })}
           </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TableCell colSpan={2} className="font-bold">Total</TableCell>
+              {visibleColumns.design && <TableCell className="font-bold">{totals.design}</TableCell>}
+              {visibleColumns.frontend && <TableCell className="font-bold">{totals.frontend}</TableCell>}
+              {visibleColumns.backend && <TableCell className="font-bold">{totals.backend}</TableCell>}
+              {visibleColumns.timeline && <TableCell></TableCell>}
+              {visibleColumns.team && <TableCell></TableCell>}
+              {visibleColumns.price && <TableCell></TableCell>}
+            </TableRow>
+          </TableFooter>
         </Table>
       </div>
     </div>
