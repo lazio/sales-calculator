@@ -50,7 +50,7 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModul
     frontend: true,
     backend: true,
     timeline: true,
-    team: true,
+    team: false,
     price: true,
   });
 
@@ -125,14 +125,11 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModul
 
   return (
     <div className="space-y-4 animate-slide-up">
-      <div className="mb-2">
-        <h3 className="mb-2">Project Modules</h3>
-        <p className="text-muted-foreground">
+      <div className="flex items-center justify-between gap-4 mb-2">
+        <p className="text-sm text-muted-foreground">
           {modules.filter(m => m.isEnabled).length} of {modules.length} enabled • {timelineDays} days timeline • {effortDays} days effort
         </p>
-      </div>
-
-      <div className="flex justify-end gap-2 mb-2">
+        <div className="flex gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm">
@@ -198,6 +195,7 @@ export default function ModuleList({ modules, onToggle, onBulkToggle, onAddModul
             )}
           </Button>
         )}
+        </div>
       </div>
 
       {/* Add Module Form */}

@@ -6,6 +6,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Upload, Copy, FileText } from 'lucide-react';
 import { ProjectModule } from '@/types/project.types';
 import { RateConfig } from '@/types/rates.types';
 
@@ -330,55 +337,75 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
 
   return (
     <div className="border-t p-3 bg-secondary">
-      <div>
-        {/* CSV Upload Button */}
-        <Button
-          onClick={handleCSVUploadClick}
-          variant="outline"
-          size="sm"
-          className="w-full"
-        >
-          Upload CSV
-        </Button>
+      <TooltipProvider>
+        <div className="flex gap-2 justify-center">
+          {/* CSV Upload Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleCSVUploadClick}
+                variant="outline"
+                size="icon"
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Upload CSV</p>
+            </TooltipContent>
+          </Tooltip>
 
-        {modules.length > 0 && (
-          <>
-            {/* Copy Summary Button */}
-            <Button
-              onClick={handleCopyToClipboard}
-              variant="outline"
-              size="sm"
-              className="w-full"
-            >
-              {copied ? 'Copied!' : 'Copy Summary'}
-            </Button>
+          {modules.length > 0 && (
+            <>
+              {/* Copy Summary Button */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleCopyToClipboard}
+                    variant="outline"
+                    size="icon"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{copied ? 'Copied!' : 'Copy Summary'}</p>
+                </TooltipContent>
+              </Tooltip>
 
-            {/* Copy Markdown Button with Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                >
-                  {copiedMarkdown ? 'Copied!' : 'Copy Markdown'}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="top">
-                <DropdownMenuItem onClick={handleCopyMarkdownSimple}>
-                  Simple (modules only)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleCopyMarkdownFull}>
-                  Full (with pricing)
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSaveCalculations}>
-                  Save All Calculations
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
-        )}
-      </div>
+              {/* Copy Markdown Button with Dropdown */}
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{copiedMarkdown ? 'Copied!' : 'Copy Markdown'}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="end" side="top">
+                  <DropdownMenuItem onClick={handleCopyMarkdownSimple}>
+                    Simple (modules only)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleCopyMarkdownFull}>
+                    Full (with pricing)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSaveCalculations}>
+                    Save All Calculations
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
+        </div>
+      </TooltipProvider>
     </div>
   );
 }
