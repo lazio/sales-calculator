@@ -97,7 +97,7 @@ export default function QuoteSummary({
       {/* Work Breakdown */}
       {totalDays > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="bg-muted/30">
             <div className="flex items-center justify-between">
               <CardTitle>Work Breakdown</CardTitle>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -166,7 +166,7 @@ export default function QuoteSummary({
         <div className={`grid gap-4 ${designDays > 0 && developmentDays > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
           {/* Design Phase */}
           {designDays > 0 && (
-            <Card>
+            <Card className="bg-muted/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Palette className="h-5 w-5" />
@@ -182,7 +182,7 @@ export default function QuoteSummary({
 
           {/* Development Phase */}
           {developmentDays > 0 && (
-            <Card>
+            <Card className="bg-muted/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Code className="h-5 w-5" />
@@ -199,7 +199,7 @@ export default function QuoteSummary({
       )}
 
       {/* Total Quote Section */}
-      <Card>
+      <Card className="bg-muted/40">
         <CardHeader>
           <CardTitle>Total Quote</CardTitle>
         </CardHeader>
