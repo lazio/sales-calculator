@@ -2,95 +2,40 @@ import { useState } from 'react';
 import { ProjectModule } from '@/types/project.types';
 import { RateConfig } from '@/types/rates.types';
 
-interface QuoteSummaryProps {
+interface SidebarFooterProps {
+  modules: ProjectModule[];
+  rates: RateConfig[];
   totalQuote: number;
-  monthlyFee: number;
-  productPrice: number;
   totalDays: number;
-  designDays?: number;
-  developmentDays?: number;
-  designCost?: number;
-  developmentCost?: number;
-  teamSizeMultiplier?: number;
-  discountAmount?: number;
-  finalTotal?: number;
-  modules?: ProjectModule[];
-  overlapDays?: number;
-  onPriceClick?: () => void;
-  currency?: '$' | '€';
-  onCurrencyToggle?: () => void;
-  rates?: RateConfig[];
+  designDays: number;
+  developmentDays: number;
+  designCost: number;
+  developmentCost: number;
+  discountAmount: number;
+  monthlyFee: number;
+  currency: '$' | '€';
 }
 
-export default function QuoteSummary({
+export default function SidebarFooter({
+  modules,
+  rates,
   totalQuote,
-  monthlyFee,
   totalDays,
-  designDays = 0,
-  developmentDays = 0,
-  designCost = 0,
-  developmentCost = 0,
-  discountAmount = 0,
-  finalTotal,
-  modules = [],
-  overlapDays = Infinity,
-  onPriceClick,
-  currency = '$',
-  onCurrencyToggle,
-  rates = []
-}: QuoteSummaryProps) {
-  const displayTotal = finalTotal !== undefined ? finalTotal : totalQuote;
-  const roundedTotal = Math.round(displayTotal / 500) * 500;
+  designDays,
+  developmentDays,
+  designCost,
+  developmentCost,
+  discountAmount,
+  monthlyFee,
+  currency,
+}: SidebarFooterProps) {
   const [copied, setCopied] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
-
-  // Calculate rate discounts
-  const ratesWithDiscounts = rates.filter(r => (r.discount || 0) > 0);
-  const rateDiscountCount = ratesWithDiscounts.length;
-
-  // Calculate what the quote would be without per-performer discounts
-  const quoteWithoutRateDiscounts = rates.length > 0 ? (() => {
-    // Calculate cost manually with all discounts set to 0
-    const BUSINESS_DAYS_PER_MONTH = 20;
-    const enabledModules = modules.filter(m => m.isEnabled);
-
-    let fullCost = 0;
-    for (const module of enabledModules) {
-      // Design cost
-      for (const performer of module.designPerformers) {
-        const rate = rates.find(r => r.role === performer);
-        if (rate) {
-          fullCost += (rate.monthlyRate / BUSINESS_DAYS_PER_MONTH) * module.designDays;
-        }
-      }
-      // Development cost
-      const devDays = Math.max(module.frontendDays, module.backendDays);
-      for (const performer of module.developmentPerformers) {
-        const rate = rates.find(r => r.role === performer);
-        if (rate) {
-          fullCost += (rate.monthlyRate / BUSINESS_DAYS_PER_MONTH) * devDays;
-        }
-      }
-    }
-    return Math.round(fullCost);
-  })() : totalQuote;
-
-  const rateDiscountAmount = quoteWithoutRateDiscounts - totalQuote;
-  const hasRateDiscounts = rateDiscountCount > 0 && rateDiscountAmount > 0;
+  const [showMarkdownMenu, setShowMarkdownMenu] = useState(false);
 
   const enabledModules = modules.filter(m => m.isEnabled);
   const disabledModules = modules.filter(m => !m.isEnabled);
-
-  // Calculate max possible overlap
-  const totalDesign = enabledModules.reduce((sum, m) => sum + m.designDays, 0);
-  const totalDev = enabledModules.reduce((sum, m) => sum + Math.max(m.frontendDays, m.backendDays), 0);
-  const maxOverlap = Math.min(totalDesign, totalDev);
-
-  // Determine overlap status
-  const isFullyParallel = overlapDays >= maxOverlap;
-  const isSequential = overlapDays === 0;
-  const overlapWeeks = Math.floor(overlapDays / 5);
+  const roundedTotal = Math.round((totalQuote - discountAmount) / 500) * 500;
 
   const handleCopyToClipboard = async () => {
     const text = `
@@ -149,7 +94,7 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
     try {
       await navigator.clipboard.writeText(markdown);
       setCopiedMarkdown(true);
-      setShowExportMenu(false);
+      setShowMarkdownMenu(false);
       setTimeout(() => setCopiedMarkdown(false), 2000);
     } catch (err) {
       console.error('Failed to copy markdown:', err);
@@ -190,7 +135,7 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
     try {
       await navigator.clipboard.writeText(markdown);
       setCopiedMarkdown(true);
-      setShowExportMenu(false);
+      setShowMarkdownMenu(false);
       setTimeout(() => setCopiedMarkdown(false), 2000);
     } catch (err) {
       console.error('Failed to copy markdown:', err);
@@ -199,6 +144,30 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
 
   const handleSaveCalculations = () => {
     const BUSINESS_DAYS_PER_MONTH = 20;
+
+    // Calculate rate discounts
+    const ratesWithDiscounts = rates.filter(r => (r.discount || 0) > 0);
+    const hasRateDiscounts = ratesWithDiscounts.length > 0;
+
+    // Calculate quote without rate discounts
+    let quoteWithoutRateDiscounts = totalQuote;
+    let rateDiscountAmount = 0;
+    if (hasRateDiscounts) {
+      rateDiscountAmount = rates.reduce((sum, rate) => {
+        const discount = rate.discount || 0;
+        if (discount === 0) return sum;
+        const dailyRate = rate.monthlyRate / BUSINESS_DAYS_PER_MONTH;
+        const discountPerDay = dailyRate * (discount / 100);
+        // Calculate total days this performer works (simplified)
+        const performerDays = enabledModules.reduce((days, m) => {
+          if (m.designPerformers.includes(rate.role)) days += m.designDays;
+          if (m.developmentPerformers.includes(rate.role)) days += Math.max(m.frontendDays, m.backendDays);
+          return days;
+        }, 0);
+        return sum + (discountPerDay * performerDays);
+      }, 0);
+      quoteWithoutRateDiscounts = totalQuote + rateDiscountAmount;
+    }
 
     // Build detailed calculations
     const moduleCalculations = enabledModules.map(module => {
@@ -293,12 +262,12 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
         totalQuote: Math.round(totalQuote * 100) / 100,
         roundedTotal,
         discountAmount: Math.round(discountAmount * 100) / 100,
-        finalTotal: Math.round(displayTotal * 100) / 100,
+        finalTotal: Math.round((totalQuote - discountAmount) * 100) / 100,
         timeline: {
           totalDays,
           designDays,
           developmentDays,
-          overlapDays: overlapDays === Infinity ? 'Full parallel' : overlapDays,
+          overlapDays: 'Calculated based on project',
           totalEffortDays: designDays + developmentDays
         }
       },
@@ -324,7 +293,7 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
         developmentCost: Math.round(developmentCost * 100) / 100,
         totalBeforeDiscounts: hasRateDiscounts ? Math.round(quoteWithoutRateDiscounts * 100) / 100 : Math.round(totalQuote * 100) / 100,
         afterRateDiscounts: Math.round(totalQuote * 100) / 100,
-        afterProjectDiscount: Math.round(displayTotal * 100) / 100
+        afterProjectDiscount: Math.round((totalQuote - discountAmount) * 100) / 100
       },
       modules: moduleCalculations,
       disabledModules: disabledModules.map(m => ({
@@ -348,182 +317,61 @@ ${disabledModules.length > 0 ? disabledModules.map(m =>
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    setShowExportMenu(false);
+    setShowMarkdownMenu(false);
   };
 
+  if (modules.length === 0) {
+    return null;
+  }
+
   return (
-    <div className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl shadow-xl p-8 animate-fade-in">
-      {/* Work Breakdown */}
-      {totalDays > 0 && (
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-white">Work Breakdown</h3>
-            <div className="flex items-center gap-2 text-sm text-white/80">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span className="group relative cursor-help">
-                {isFullyParallel ? 'Fully parallel work' : isSequential ? 'Sequential work' : `${overlapWeeks}w overlap`}
-                <span className="invisible group-hover:visible absolute left-0 top-6 w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10">
-                  {isFullyParallel
-                    ? 'All modules work in parallel. Design and development happen simultaneously across all modules.'
-                    : isSequential
-                    ? 'Work is sequential. Development starts after design completes.'
-                    : `Development starts ${overlapWeeks} week${overlapWeeks !== 1 ? 's' : ''} after design begins. All modules work in parallel.`}
-                </span>
-              </span>
-            </div>
-          </div>
+    <div className="border-t border-gray-200 p-3 bg-gray-50">
+      <div className="space-y-2">
+        {/* Copy Summary Button */}
+        <button
+          onClick={handleCopyToClipboard}
+          className="w-full text-xs py-2 px-3 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors flex items-center justify-center space-x-1.5"
+        >
+          <span>{copied ? '✓' : '📋'}</span>
+          <span>{copied ? 'Copied!' : 'Copy Summary'}</span>
+        </button>
 
-          {/* Work Summary */}
-          <div className="space-y-2">
-            {designDays > 0 && (
-              <div className="flex items-center justify-between text-white/90">
-                <span className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-purple-400"></span>
-                  Design Effort
-                </span>
-                <span className="font-semibold">{designDays} days</span>
-              </div>
-            )}
-
-            {developmentDays > 0 && (
-              <div className="flex items-center justify-between text-white/90">
-                <span className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-blue-400"></span>
-                  Development Effort
-                </span>
-                <span className="font-semibold">{developmentDays} days</span>
-              </div>
-            )}
-          </div>
-
-          {/* Total Timeline and Monthly Rate */}
-          <div className="pt-3 mt-3 border-t border-white/20 grid grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-white/90 text-sm">Total Project Timeline</span>
-                <span className="text-white font-bold text-lg">{totalDays} days</span>
-              </div>
-              <p className="text-white/60 text-xs">
-                {designDays + developmentDays} total effort days completed in {totalDays} calendar days due to parallel work
-              </p>
-            </div>
-            <div className="border-l border-white/20 pl-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-white/90 text-sm">Monthly Rate Card</span>
-                <span className="text-white font-bold text-lg">{currency}{monthlyFee.toLocaleString()}</span>
-              </div>
-              <p className="text-white/60 text-xs">
-                Total monthly fee for all performers
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Price Breakdown */}
-      {(designDays > 0 || developmentDays > 0) && (
-        <div className="mb-8">
-          <div className={`grid gap-4 ${designDays > 0 && developmentDays > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {/* Design Phase */}
-            {designDays > 0 && (
-              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5">
-                <div className="flex justify-between items-center mb-1">
-                  <h4 className="text-lg font-semibold text-white">Design Phase</h4>
-                  <span className="text-2xl font-bold text-white">
-                    {currency}{designCost.toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-sm text-white/80">{designDays} days</p>
-              </div>
-            )}
-
-            {/* Development Phase */}
-            {developmentDays > 0 && (
-              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5">
-                <div className="flex justify-between items-center mb-1">
-                  <h4 className="text-lg font-semibold text-white">Development Phase</h4>
-                  <span className="text-2xl font-bold text-white">
-                    {currency}{developmentCost.toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-sm text-white/80">{developmentDays} days</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Total Quote Section */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/20">
-        <h2 className="text-base font-bold text-white mb-3">
-          Total Quote
-        </h2>
-
-        {/* Show discount breakdown if rate discounts or global discounts exist */}
-        {(hasRateDiscounts || discountAmount > 0) && (
-          <div className="space-y-1 mb-3 text-sm">
-            <div className="flex items-center justify-between text-white/80">
-              <span>Full price</span>
-              <span>{currency}{quoteWithoutRateDiscounts.toLocaleString()}</span>
-            </div>
-            {hasRateDiscounts && (
-              <div className="flex items-center justify-between text-green-400">
-                <span className="flex items-center gap-1">
-                  <span>↓</span>
-                  <span>Rate discounts</span>
-                  <span className="text-xs text-green-300">({rateDiscountCount})</span>
-                </span>
-                <span>-{currency}{rateDiscountAmount.toLocaleString()}</span>
-              </div>
-            )}
-            {discountAmount > 0 && (
-              <div className="flex items-center justify-between text-green-400">
-                <span className="flex items-center gap-1">
-                  <span>↓</span>
-                  <span>Project discount</span>
-                </span>
-                <span>-{currency}{discountAmount.toLocaleString()}</span>
-              </div>
-            )}
-            <div className="border-t border-white/20 pt-1 mt-1"></div>
-          </div>
-        )}
-
-        <div className="text-3xl font-bold text-white flex items-center gap-1">
-          <span>~</span>
-          {onCurrencyToggle ? (
-            <span
-              onClick={onCurrencyToggle}
-              className="transition-colors cursor-pointer"
-              title="Click to toggle currency"
-            >
-              {currency}
-            </span>
-          ) : (
-            <span>{currency}</span>
-          )}
-          <span
-            className={onPriceClick ? 'hover:text-white/90 transition-colors cursor-pointer' : ''}
-            onClick={onPriceClick}
-            title={onPriceClick && discountAmount === 0 ? 'Click to add discount' : undefined}
+        {/* Copy Markdown Button with Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setShowMarkdownMenu(!showMarkdownMenu)}
+            className="w-full text-xs py-2 px-3 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors flex items-center justify-center space-x-1.5"
           >
-            {roundedTotal.toLocaleString()}
-          </span>
+            <span>{copiedMarkdown ? '✓' : '📝'}</span>
+            <span>{copiedMarkdown ? 'Copied!' : 'Copy Markdown'}</span>
+            <span className="text-xs">▼</span>
+          </button>
+
+          {showMarkdownMenu && (
+            <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border border-gray-300 rounded shadow-lg overflow-hidden">
+              <button
+                onClick={handleCopyMarkdownSimple}
+                className="w-full text-left text-xs py-2 px-3 hover:bg-gray-50 text-gray-700"
+              >
+                Simple (modules only)
+              </button>
+              <button
+                onClick={handleCopyMarkdownFull}
+                className="w-full text-left text-xs py-2 px-3 hover:bg-gray-50 text-gray-700 border-t border-gray-200"
+              >
+                Full (with pricing)
+              </button>
+              <button
+                onClick={handleSaveCalculations}
+                className="w-full text-left text-xs py-2 px-3 hover:bg-gray-50 text-gray-700 border-t border-gray-200 flex items-center space-x-1.5"
+              >
+                <span>💾</span>
+                <span>Save All Calculations</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
     </div>
   );
 }
