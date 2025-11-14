@@ -28,24 +28,19 @@ export default function WorkOverlapSlider({
   }
 
   return (
-    <div>
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-muted-foreground">
-            When development starts after design begins
-          </p>
-        </div>
-        <div>
-          <div className="font-bold">
-            {currentWeeks === maxWeeks ? 'Fully Parallel' : `+${currentWeeks} week${currentWeeks !== 1 ? 's' : ''}`}
-          </div>
-          <div className="text-muted-foreground">
-            {overlapDays === 0 ? 'Sequential' : `${overlapDays} days overlap`}
+        <p className="text-sm text-muted-foreground">
+          When development starts after design begins
+        </p>
+        <div className="text-right">
+          <div className="text-sm font-medium">
+            {currentWeeks === maxWeeks ? 'Fully Parallel' : currentWeeks === 0 ? 'Sequential' : `${currentWeeks} week${currentWeeks !== 1 ? 's' : ''} overlap`}
           </div>
         </div>
       </div>
 
-      <div>
+      <div className="space-y-2">
         <Slider
           min={0}
           max={maxWeeks}
@@ -53,10 +48,10 @@ export default function WorkOverlapSlider({
           value={[currentWeeks]}
           onValueChange={handleWeeksChange}
         />
-        <div className="flex justify-between text-muted-foreground">
+        <div className="flex justify-between text-xs text-muted-foreground">
           <span>Sequential</span>
           <span>
-            {Math.floor(maxWeeks / 2)} wks
+            {Math.floor(maxWeeks / 2)} week{Math.floor(maxWeeks / 2) !== 1 ? 's' : ''}
           </span>
           <span>Parallel</span>
         </div>

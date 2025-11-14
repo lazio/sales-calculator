@@ -33,8 +33,8 @@ function App() {
     existingRoles: rates.map(r => r.role)
   });
 
-  // Work overlap (in days) - default: 1 month (20 business days) after design starts
-  const [workOverlap, setWorkOverlap] = useState<number>(20);
+  // Work overlap (in days) - default: sequential (0 days)
+  const [workOverlap, setWorkOverlap] = useState<number>(0);
 
   // Discount percentage (0-100)
   const [discount, setDiscount] = useState<number>(0);
