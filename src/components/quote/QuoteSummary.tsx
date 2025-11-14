@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { ProjectModule } from '@/types/project.types';
 import { RateConfig } from '@/types/rates.types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Info, Palette, Code, Calendar, DollarSign } from 'lucide-react';
+import { Info, Palette, Code, Target, DollarSign } from 'lucide-react';
+import { calculateTimeToMarket } from '@/utils/timeToMarket';
 
 interface QuoteSummaryProps {
   totalQuote: number;
@@ -91,6 +93,17 @@ export default function QuoteSummary({
   const isSequential = overlapDays === 0;
   const overlapWeeks = Math.floor(overlapDays / 5);
 
+  // Calculate Time to Market
+  const timeToMarket = calculateTimeToMarket(totalDays);
+
+  // ==================== EXPERIMENT: Range estimation - can be removed ====================
+  // State to toggle between single quote and range view
+  const [showRange, setShowRange] = useState(false);
+
+  // Calculate min/max range (±15%)
+  const minQuote = Math.round((roundedTotal * 0.85) / 500) * 500;
+  const maxQuote = Math.round((roundedTotal * 1.15) / 500) * 500;
+  // ==================== END EXPERIMENT ====================
 
   return (
     <div className="space-y-4">
@@ -138,12 +151,12 @@ export default function QuoteSummary({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4" />
-                  Total Project Timeline
+                  <Target className="h-4 w-4" />
+                  Time to Market
                 </div>
-                <div className="text-2xl font-bold">{totalDays} days</div>
+                <div className="text-2xl font-bold capitalize">{timeToMarket.descriptiveDate}</div>
                 <p className="text-xs text-muted-foreground">
-                  {designDays + developmentDays} total effort days completed in {totalDays} calendar days due to parallel work
+                  {timeToMarket.months} {timeToMarket.months === 1 ? 'month' : 'months'}, considering we start next week
                 </p>
               </div>
               <div className="space-y-1">
@@ -230,27 +243,60 @@ export default function QuoteSummary({
             </div>
           )}
 
+          {/* ==================== EXPERIMENT: Range estimation - can be removed ==================== */}
           <div className="text-4xl font-bold flex items-center gap-1">
-            <span>~</span>
-            {onCurrencyToggle ? (
-              <span
-                onClick={onCurrencyToggle}
-                className="cursor-pointer"
-                title="Click to toggle currency"
-              >
-                {currency}
-              </span>
+            {!showRange ? (
+              <>
+                <span>~</span>
+                {onCurrencyToggle ? (
+                  <span
+                    onClick={onCurrencyToggle}
+                    className="cursor-pointer"
+                    title="Click to toggle currency"
+                  >
+                    {currency}
+                  </span>
+                ) : (
+                  <span>{currency}</span>
+                )}
+                <span
+                  className={onPriceClick ? 'cursor-pointer' : ''}
+                  onClick={onPriceClick}
+                  title={onPriceClick && discountAmount === 0 ? 'Click to add discount' : undefined}
+                >
+                  {roundedTotal.toLocaleString()}
+                </span>
+              </>
             ) : (
-              <span>{currency}</span>
+              <>
+                {onCurrencyToggle ? (
+                  <span
+                    onClick={onCurrencyToggle}
+                    className="cursor-pointer"
+                    title="Click to toggle currency"
+                  >
+                    {currency}
+                  </span>
+                ) : (
+                  <span>{currency}</span>
+                )}
+                <span
+                  className={onPriceClick ? 'cursor-pointer' : ''}
+                  onClick={onPriceClick}
+                >
+                  {minQuote.toLocaleString()} - {maxQuote.toLocaleString()}
+                </span>
+              </>
             )}
-            <span
-              className={onPriceClick ? 'cursor-pointer' : ''}
-              onClick={onPriceClick}
-              title={onPriceClick && discountAmount === 0 ? 'Click to add discount' : undefined}
-            >
-              {roundedTotal.toLocaleString()}
-            </span>
           </div>
+          <p
+            className="text-sm text-muted-foreground mt-2 cursor-pointer hover:text-foreground transition-colors"
+            onClick={() => setShowRange(!showRange)}
+            title="Click to toggle range view"
+          >
+            to be re-estimated
+          </p>
+          {/* ==================== END EXPERIMENT ==================== */}
         </CardContent>
       </Card>
     </div>
