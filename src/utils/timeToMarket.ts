@@ -39,7 +39,7 @@ function calculateEndDate(workingDays: number): Date {
 
 /**
  * Convert a date to descriptive text
- * Returns: "beginning of March", "middle of April", "end of May"
+ * Returns: "Early March", "Mid April", "Late May"
  */
 function getDescriptiveDate(date: Date): string {
   const months = [
@@ -52,14 +52,14 @@ function getDescriptiveDate(date: Date): string {
 
   let period: string;
   if (day <= 10) {
-    period = 'beginning';
+    period = 'Early';
   } else if (day <= 20) {
-    period = 'middle';
+    period = 'Mid';
   } else {
-    period = 'end';
+    period = 'Late';
   }
 
-  return `${period} of ${month}`;
+  return `${period} ${month}`;
 }
 
 /**

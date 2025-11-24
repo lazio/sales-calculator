@@ -57,11 +57,16 @@ export default function SidebarFooter({
   };
 
   const handleCopyToClipboard = async () => {
+    // Calculate min/max range (±15%)
+    const minQuote = Math.round((roundedTotal * 0.85) / 500) * 500;
+    const maxQuote = Math.round((roundedTotal * 1.15) / 500) * 500;
+
     const text = `
 PROJECT QUOTE SUMMARY
 =====================
 
 Total: ~${currency}${roundedTotal.toLocaleString()}
+Range: ${currency}${minQuote.toLocaleString()} - ${maxQuote.toLocaleString()}; could be re-estimated
 ${discountAmount > 0 ? `Original: ${currency}${totalQuote.toLocaleString()}\nDiscount: -${currency}${discountAmount.toLocaleString()}\n` : ''}
 Timeline: ${totalDays} working days
 

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { ProjectModule } from '@/types/project.types';
 import { RateConfig } from '@/types/rates.types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -97,9 +96,6 @@ export default function QuoteSummary({
   const timeToMarket = calculateTimeToMarket(totalDays);
 
   // ==================== EXPERIMENT: Range estimation - can be removed ====================
-  // State to toggle between single quote and range view
-  const [showRange, setShowRange] = useState(false);
-
   // Calculate min/max range (±15%)
   const minQuote = Math.round((roundedTotal * 0.85) / 500) * 500;
   const maxQuote = Math.round((roundedTotal * 1.15) / 500) * 500;
@@ -156,7 +152,7 @@ export default function QuoteSummary({
                 </div>
                 <div className="text-2xl font-bold capitalize">{timeToMarket.descriptiveDate}</div>
                 <p className="text-xs text-muted-foreground">
-                  {timeToMarket.months} {timeToMarket.months === 1 ? 'month' : 'months'}, considering we start next week
+                  {timeToMarket.months} {timeToMarket.months === 1 ? 'month' : 'months'} from next week
                 </p>
               </div>
               <div className="space-y-1">
@@ -245,56 +241,28 @@ export default function QuoteSummary({
 
           {/* ==================== EXPERIMENT: Range estimation - can be removed ==================== */}
           <div className="text-4xl font-bold flex items-center gap-1">
-            {!showRange ? (
-              <>
-                <span>~</span>
-                {onCurrencyToggle ? (
-                  <span
-                    onClick={onCurrencyToggle}
-                    className="cursor-pointer"
-                    title="Click to toggle currency"
-                  >
-                    {currency}
-                  </span>
-                ) : (
-                  <span>{currency}</span>
-                )}
-                <span
-                  className={onPriceClick ? 'cursor-pointer' : ''}
-                  onClick={onPriceClick}
-                  title={onPriceClick && discountAmount === 0 ? 'Click to add discount' : undefined}
-                >
-                  {roundedTotal.toLocaleString()}
-                </span>
-              </>
+            <span>~</span>
+            {onCurrencyToggle ? (
+              <span
+                onClick={onCurrencyToggle}
+                className="cursor-pointer"
+                title="Click to toggle currency"
+              >
+                {currency}
+              </span>
             ) : (
-              <>
-                {onCurrencyToggle ? (
-                  <span
-                    onClick={onCurrencyToggle}
-                    className="cursor-pointer"
-                    title="Click to toggle currency"
-                  >
-                    {currency}
-                  </span>
-                ) : (
-                  <span>{currency}</span>
-                )}
-                <span
-                  className={onPriceClick ? 'cursor-pointer' : ''}
-                  onClick={onPriceClick}
-                >
-                  {minQuote.toLocaleString()} - {maxQuote.toLocaleString()}
-                </span>
-              </>
+              <span>{currency}</span>
             )}
+            <span
+              className={onPriceClick ? 'cursor-pointer' : ''}
+              onClick={onPriceClick}
+              title={onPriceClick && discountAmount === 0 ? 'Click to add discount' : undefined}
+            >
+              {roundedTotal.toLocaleString()}
+            </span>
           </div>
-          <p
-            className="text-sm text-muted-foreground mt-2 cursor-pointer hover:text-foreground transition-colors"
-            onClick={() => setShowRange(!showRange)}
-            title="Click to toggle range view"
-          >
-            to be re-estimated
+          <p className="text-sm text-muted-foreground mt-2">
+            {currency}{minQuote.toLocaleString()} - {maxQuote.toLocaleString()}; could be re-estimated
           </p>
           {/* ==================== END EXPERIMENT ==================== */}
         </CardContent>
